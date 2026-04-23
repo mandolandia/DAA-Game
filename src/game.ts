@@ -126,7 +126,7 @@ export class Game {
       const input = this.controls.poll();
 
       this.player.update(dt, input, this.world.walls, this.cam3p);
-      this.cam3p.update(dt, this.player.pos, input.lookDX);
+      this.cam3p.update(dt, this.player.pos, input.lookDX, this.world.walls);
 
       const collected = this.pins.update(dt, this.player.pos, input.interactPressed);
       if (collected) {
@@ -157,7 +157,12 @@ export class Game {
       this.ui.updatePlacard(dt);
     } else {
       // Cámara sigue animando sutilmente para el fondo
-      this.cam3p.update(dt, this.player.pos, 0.02 * dt * 60);
+      this.cam3p.update(
+        dt,
+        this.player.pos,
+        0.02 * dt * 60,
+        this.world.walls
+      );
     }
 
     this.renderer.render(this.scene, this.camera);
