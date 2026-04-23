@@ -25,7 +25,6 @@
         -webkit-tap-highlight-color: transparent;
         user-select: none;
         -webkit-user-select: none;
-        touch-action: none;
       }
       html,
       body {
@@ -36,6 +35,7 @@
         font-family: "Courier New", ui-monospace, Menlo, monospace;
         color: var(--ui);
         letter-spacing: 0.04em;
+        touch-action: none;
       }
       canvas#game {
         display: block;
@@ -46,6 +46,7 @@
         image-rendering: pixelated;
         image-rendering: -moz-crisp-edges;
         image-rendering: crisp-edges;
+        touch-action: none;
       }
       #ui {
         position: absolute;
@@ -141,6 +142,7 @@
         border: 2px solid rgba(244, 231, 196, 0.35);
         background: rgba(0, 0, 0, 0.25);
         pointer-events: auto;
+        touch-action: none;
       }
       .stick .nub {
         position: absolute;
@@ -170,6 +172,7 @@
         align-items: center;
         justify-content: center;
         pointer-events: auto;
+        touch-action: none;
       }
       .btn:active {
         background: rgba(231, 198, 106, 0.35);

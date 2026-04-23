@@ -99,9 +99,15 @@ export class Game {
   }
 
   private onStart() {
-    this.audio.resume();
-    this.audio.startMuzak();
-    this.audio.click();
+    if (this.running) return;
+    // Audio puede fallar en navegadores restrictivos — no bloquear el arranque.
+    try {
+      this.audio.resume();
+      this.audio.startMuzak();
+      this.audio.click();
+    } catch (err) {
+      console.warn("Audio init falló:", err);
+    }
     this.ui.hideIntro();
     this.clock.start();
     this.running = true;

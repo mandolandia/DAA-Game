@@ -20,16 +20,10 @@ export class UI {
   private placardHideTimer = 0;
 
   constructor(opts: { onStart: () => void; onRestart: () => void }) {
-    this.startBtn.addEventListener("click", opts.onStart);
-    this.startBtn.addEventListener("touchend", (e) => {
-      e.preventDefault();
-      opts.onStart();
-    });
-    this.restartBtn.addEventListener("click", opts.onRestart);
-    this.restartBtn.addEventListener("touchend", (e) => {
-      e.preventDefault();
-      opts.onRestart();
-    });
+    bindOnce(this.startBtn, opts.onStart);
+    bindOnce(this.introEl, opts.onStart); // fallback: tap anywhere en el overlay
+    bindOnce(this.restartBtn, opts.onRestart);
+    bindOnce(this.outroEl, opts.onRestart);
   }
 
   setCounter(c: number, total: number) {
@@ -95,4 +89,28 @@ export class UI {
   hideOutro() {
     this.outroEl.classList.add("hidden");
   }
+}
+
+/**
+ * Enlaza click + touchend + pointerup en el mismo elemento, garantizando
+ * que el callback corre una sola vez por gesto. Crítico para iOS Safari,
+ * que puede no sintetizar click desde touch bajo ciertas circunstancias.
+ */
+function bindOnce(el: HTMLElement, cb: () => void) {
+  let lastFire = 0;
+  const fire = (e: Event) => {
+    const now = Date.now();
+    if (now - lastFire < 400) return; // debounce de doble disparo
+    lastFire = now;
+    e.preventDefault();
+    e.stopPropagation();
+    try {
+      cb();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  el.addEventListener("click", fire);
+  el.addEventListener("touchend", fire, { passive: false });
+  el.addEventListener("pointerup", fire);
 }
