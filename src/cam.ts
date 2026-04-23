@@ -46,7 +46,9 @@ export class FollowCamera {
   }
 
   rightXZ(out: THREE.Vector3): THREE.Vector3 {
-    out.set(Math.cos(this.yaw), 0, -Math.sin(this.yaw));
+    // El "derecha" de la cámara en world-space.
+    // Como la cámara mira hacia +Z del player (yaw=0), su +X local es world -X.
+    out.set(-Math.cos(this.yaw), 0, Math.sin(this.yaw));
     return out;
   }
 }
