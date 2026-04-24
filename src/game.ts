@@ -1,9 +1,10 @@
 import * as THREE from "three";
 import { buildWorld, type BuiltWorld } from "./world";
-import { Player } from "./player";
+import { Player, pickRandomPlayerStyle } from "./player";
 import { FollowCamera } from "./cam";
 import { TouchControls } from "./controls";
 import { CaseManager } from "./pins";
+import { NPCManager, type NPCSpawn } from "./npcs";
 import { UI } from "./ui";
 import { Audio } from "./audio";
 
@@ -15,6 +16,7 @@ export class Game {
   private player: Player;
   private controls: TouchControls;
   private cases: CaseManager;
+  private npcs: NPCManager;
   private ui: UI;
   private audio = new Audio();
   private world: BuiltWorld;
@@ -38,13 +40,27 @@ export class Game {
 
     this.camera = new THREE.PerspectiveCamera(58, 1, 0.1, 120);
     this.cam3p = new FollowCamera(this.camera);
-    this.player = new Player();
+    this.player = new Player(pickRandomPlayerStyle());
     // Posición inicial: Recepción, mirando hacia el norte (hacia el pasillo)
     this.player.pos.set(0, 0, 12);
     this.scene.add(this.player.mesh);
 
     this.world = buildWorld(this.scene);
     this.cases = new CaseManager(this.scene, this.world.caseFiles);
+
+    // Empleados del Pabellón caminando por las distintas zonas
+    const npcSpawns: NPCSpawn[] = [
+      { x: 6, z: 10, radius: 3 },    // Recepción (derecha)
+      { x: -8, z: 10, radius: 3 },   // Recepción (izquierda)
+      { x: 0, z: 3, radius: 1.5 },   // Pasillo (entrada)
+      { x: 0, z: -4, radius: 2 },    // Pasillo (cerca del Fundador)
+      { x: 8, z: 3, radius: 2.5 },   // Sala de Espera
+      { x: -10, z: 3, radius: 2.5 }, // Archivo de Cartas
+      { x: -10, z: -5, radius: 2.5 },// Cafetería
+      { x: 8, z: -5, radius: 2.5 },  // Máquinas Emocionales
+      { x: 0, z: -13, radius: 3 },   // Auditorio
+    ];
+    this.npcs = new NPCManager(this.scene, npcSpawns);
 
     this.ui = new UI({
       onStart: () => this.onStart(),
@@ -127,8 +143,11 @@ export class Game {
 
       this.player.update(dt, input, this.world.walls, this.cam3p);
       this.cam3p.update(dt, this.player.pos, input.lookDX, this.world.walls);
+      this.npcs.update(dt, this.world.walls);
 
-      const collected = this.cases.update(dt, this.player.pos, input.interactPressed);
+      // No permitir recolectar mientras se lee un expediente previo
+      const canPick = !this.ui.isPlacardOpen();
+      const collected = this.cases.update(dt, this.player.pos, canPick && input.interactPressed);
       if (collected) {
         this.audio.tintineo();
         this.ui.showPlacard(collected, this.cases.collected, this.cases.total);
@@ -166,8 +185,6 @@ export class Game {
       // Pasos
       const speed = Math.hypot(this.player.vel.x, this.player.vel.z);
       this.audio.stepTick(dt, speed, input.run);
-
-      this.ui.updatePlacard(dt);
     } else {
       // Cámara sigue animando sutilmente para el fondo
       this.cam3p.update(

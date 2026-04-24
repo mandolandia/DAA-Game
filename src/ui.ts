@@ -17,13 +17,13 @@ export class UI {
   private restartBtn = document.getElementById("restartBtn") as HTMLButtonElement;
 
   private currentLoc = "";
-  private placardHideTimer = 0;
 
   constructor(opts: { onStart: () => void; onRestart: () => void }) {
     bindOnce(this.startBtn, opts.onStart);
     bindOnce(this.introEl, opts.onStart); // fallback: tap anywhere en el overlay
     bindOnce(this.restartBtn, opts.onRestart);
     bindOnce(this.outroEl, opts.onRestart);
+    bindOnce(this.placardEl, () => this.hidePlacard());
   }
 
   setCounter(c: number, total: number) {
@@ -40,21 +40,20 @@ export class UI {
     }
   }
 
-  showPlacard(spot: CaseFile, collected: number, total: number) {
+  showPlacard(spot: CaseFile, collected: number, _total: number) {
     this.plNum.textContent = collected.toString().padStart(2, "0");
     this.plTitle.textContent = spot.title.toUpperCase();
     this.plFlavor.textContent = `"${spot.flavor}"`;
     this.placardEl.classList.add("show");
-    this.placardHideTimer = 3.5;
   }
 
-  updatePlacard(dt: number) {
-    if (this.placardHideTimer > 0) {
-      this.placardHideTimer -= dt;
-      if (this.placardHideTimer <= 0) {
-        this.placardEl.classList.remove("show");
-      }
-    }
+  hidePlacard() {
+    this.placardEl.classList.remove("show");
+  }
+
+  /** ¿Placard visible? Útil para pausar recolección mientras se lee. */
+  isPlacardOpen(): boolean {
+    return this.placardEl.classList.contains("show");
   }
 
   setLocation(name: string) {

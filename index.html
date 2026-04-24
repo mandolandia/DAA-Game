@@ -111,9 +111,12 @@
         transition: transform 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2);
         font-size: 12px;
         box-shadow: 0 4px 0 rgba(0, 0, 0, 0.4);
+        pointer-events: none;
       }
       .placard.show {
         transform: translate(-50%, 12px);
+        pointer-events: auto;
+        cursor: pointer;
       }
       .placard .head {
         color: var(--gold);
@@ -130,6 +133,16 @@
         margin-top: 6px;
         font-style: italic;
         line-height: 1.3;
+      }
+      .placard .pl-close {
+        margin-top: 10px;
+        text-align: center;
+        font-size: 10px;
+        letter-spacing: 0.22em;
+        color: var(--gold);
+        opacity: 0.7;
+        border-top: 1px solid rgba(231, 198, 106, 0.25);
+        padding-top: 6px;
       }
       /* Joystick */
       .stick {
@@ -286,6 +299,7 @@
         <div class="head">CASO <span id="pl-num">01</span> / 10 · ARCHIVADO</div>
         <div class="title" id="pl-title">—</div>
         <div class="flavor" id="pl-flavor">—</div>
+        <div class="pl-close">TOCAR PARA CERRAR</div>
       </div>
 
       <div class="stick" id="stick"><div class="nub" id="nub"></div></div>
