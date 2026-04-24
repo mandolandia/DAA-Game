@@ -82,35 +82,85 @@ export class CaseManager {
 
 function makeFolderMesh(): THREE.Group {
   const g = new THREE.Group();
-  // Cuerpo de la carpeta (manila)
-  const body = new THREE.Mesh(
-    new THREE.BoxGeometry(0.26, 0.34, 0.04),
-    ps2Lambert({ color: 0xe8c870, emissive: 0x4a3000 })
+  const W = 0.30, H = 0.21, D = 0.07;
+  const CT = 0.012; // cover thickness
+  const tW = 0.09, tH = 0.042; // tab size
+  const manila     = 0xc4a43c;
+  const manilaLight = 0xd4b44a;
+  const manilaEdge  = 0xa88c28;
+  const paper1 = 0xf0e8c4;
+  const paper2 = 0xe0d8aa;
+
+  // Tapa trasera (completa)
+  const backCover = new THREE.Mesh(
+    new THREE.BoxGeometry(W, H, CT),
+    ps2Lambert({ color: manila })
   );
-  g.add(body);
-  // Pestaña superior izquierda
+  backCover.position.z = -D / 2 + CT / 2;
+  g.add(backCover);
+
+  // Pestaña arriba-izquierda en tapa trasera
   const tab = new THREE.Mesh(
-    new THREE.BoxGeometry(0.11, 0.055, 0.046),
-    ps2Lambert({ color: 0xd4a030, emissive: 0x3a2000 })
+    new THREE.BoxGeometry(tW, tH, CT),
+    ps2Lambert({ color: manilaLight })
   );
-  tab.position.set(-0.065, 0.197, 0);
+  tab.position.set(-W / 2 + tW / 2, H / 2 + tH / 2, -D / 2 + CT / 2);
   g.add(tab);
-  // Líneas de páginas internas
-  for (let i = 0; i < 3; i++) {
-    const stripe = new THREE.Mesh(
-      new THREE.BoxGeometry(0.17, 0.013, 0.046),
-      ps2Lambert({ color: 0xb89830 })
+
+  // Páginas internas (3, apiladas, decrecientes en profundidad)
+  const pageDefs = [
+    { d: D - CT * 2, c: paper1 },
+    { d: (D - CT * 2) * 0.65, c: paper2 },
+    { d: (D - CT * 2) * 0.35, c: paper1 },
+  ];
+  for (const { d, c } of pageDefs) {
+    const page = new THREE.Mesh(
+      new THREE.BoxGeometry(W - 0.018, H * 0.97, d),
+      ps2Lambert({ color: c })
     );
-    stripe.position.set(0.01, 0.06 - i * 0.075, 0);
-    g.add(stripe);
+    page.position.z = -D / 2 + CT + d / 2;
+    g.add(page);
   }
+
+  // Tapa delantera — cuerpo principal (todo excepto el hueco del tab)
+  const frontMain = new THREE.Mesh(
+    new THREE.BoxGeometry(W, H - tH, CT),
+    ps2Lambert({ color: manila })
+  );
+  frontMain.position.set(0, -tH / 2, D / 2 - CT / 2);
+  g.add(frontMain);
+
+  // Tapa delantera — franja superior derecha (donde no está el tab)
+  const frontTopRight = new THREE.Mesh(
+    new THREE.BoxGeometry(W - tW, tH, CT),
+    ps2Lambert({ color: manila })
+  );
+  frontTopRight.position.set(tW / 2, H / 2 - tH / 2, D / 2 - CT / 2);
+  g.add(frontTopRight);
+
+  // Lomo derecho
+  const spine = new THREE.Mesh(
+    new THREE.BoxGeometry(CT, H, D),
+    ps2Lambert({ color: manilaEdge })
+  );
+  spine.position.set(W / 2 + CT / 2, 0, 0);
+  g.add(spine);
+
+  // Doblez inferior
+  const fold = new THREE.Mesh(
+    new THREE.BoxGeometry(W + CT * 2, CT, D),
+    ps2Lambert({ color: manilaEdge })
+  );
+  fold.position.set(0, -H / 2 - CT / 2, 0);
+  g.add(fold);
+
   // Halo suave
   const halo = new THREE.Mesh(
-    new THREE.CircleGeometry(0.44, 10),
+    new THREE.CircleGeometry(0.38, 10),
     new THREE.MeshBasicMaterial({
-      color: 0xf5d270,
+      color: 0xf0d060,
       transparent: true,
-      opacity: 0.14,
+      opacity: 0.13,
       side: THREE.DoubleSide,
       depthWrite: false,
     })
