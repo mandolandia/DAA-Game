@@ -1,4 +1,4 @@
-import type { PinSpot } from "./pins";
+import type { CaseFile } from "./pins";
 
 export class UI {
   private counterEl = document.getElementById("counter")!;
@@ -40,7 +40,7 @@ export class UI {
     }
   }
 
-  showPlacard(spot: PinSpot, collected: number, total: number) {
+  showPlacard(spot: CaseFile, collected: number, total: number) {
     this.plNum.textContent = collected.toString().padStart(2, "0");
     this.plTitle.textContent = spot.title.toUpperCase();
     this.plFlavor.textContent = `"${spot.flavor}"`;

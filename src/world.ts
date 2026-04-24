@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import { ps2Lambert, ps2Basic } from "./ps2";
 import { signTexture, posterTexture, carpetTexture } from "./textures";
-import type { PinSpot } from "./pins";
+import type { CaseFile } from "./pins";
 
 export type Interactable = {
   mesh: THREE.Mesh;
@@ -15,7 +15,7 @@ export type Interactable = {
 
 export type BuiltWorld = {
   walls: THREE.Box3[];
-  pinSpots: PinSpot[];
+  caseFiles: CaseFile[];
   /** Zonas etiquetadas (x1, z1, x2, z2, name) para mostrar "ubicación actual" */
   zones: { x1: number; z1: number; x2: number; z2: number; name: string }[];
   interactables: Interactable[];
@@ -132,7 +132,7 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   addPatioLight(scene, 10, -14);
 
   // --- PROPS POR SALA ---
-  const pinSpots: PinSpot[] = [];
+  const caseFiles: CaseFile[] = [];
 
   // ===== RECEPCIÓN =====
   // Mostrador
@@ -152,11 +152,11 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   addPlant(scene, 12, 12);
   // Bandeja oficial (entrega final — por ahora solo decor)
   addDecor(scene, -1, 1.3, 9.6, 0.6, 0.05, 0.3, 0xa88b4a);
-  // PIN 01 — detrás del mostrador
-  pinSpots.push({
+  // CASO 01 — detrás del mostrador
+  caseFiles.push({
     id: 1,
-    title: "Pin de Recepción",
-    flavor: "Hallado en zona de recepción. Probable distracción durante el saludo institucional.",
+    title: "La solicitante del formulario 7-B",
+    flavor: "Vine a presentar mi caso en persona. Me dijeron que completara el formulario 7-B. Llevo tres semanas esperando. Él ya no atiende mis llamadas, pero sé que me quiere.",
     position: [0, 1.5, 10.2],
     room: "RECEPCIÓN",
   });
@@ -172,19 +172,19 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   addBox(scene, walls, -0.6, -2, 0.6, 2, 0.5, 0x3a2416);
   // Estatua del Fundador
   addStatue(scene, 0, -6);
-  // PIN 02 — bajo el banco
-  pinSpots.push({
+  // CASO 02 — bajo el banco
+  caseFiles.push({
     id: 2,
-    title: "Pin del Pasillo",
-    flavor: "Olvidado bajo el banco del Pasillo. Sin reclamante registrado.",
+    title: "El hombre del pasillo",
+    flavor: "La vi el martes, caminando despacio, como si también buscara algo. No me animé a hablarle. Por favor, entréguenle esto de mi parte.",
     position: [0, 0.55, 0],
     room: "PASILLO DE RETRATOS",
   });
-  // PIN 03 — sobre el marco del Fundador
-  pinSpots.push({
+  // CASO 03 — sobre el pedestal del Fundador
+  caseFiles.push({
     id: 3,
-    title: "Pin del Fundador",
-    flavor: "Condecoración extraviada en ceremonia de 1974. Reportada por tercera vez.",
+    title: "La compañera de departamento",
+    flavor: "Llevamos veintidós años sin hablar. Vengo cada año a renovar la denuncia, por si acaso él también lo hace.",
     position: [0, 2.3, -6.2],
     room: "PASILLO DE RETRATOS",
   });
@@ -200,11 +200,11 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
       addChair(scene, walls, x, z);
     }
   }
-  // PIN 04 — sobre una silla
-  pinSpots.push({
+  // CASO 04 — sobre una silla
+  caseFiles.push({
     id: 4,
-    title: "Pin de la Espera",
-    flavor: "Olvidado por un solicitante que no regresó. Caso archivado.",
+    title: "El número 312",
+    flavor: "El tablero lleva horas en 037. No importa. Ella también está esperando en algún lugar. El tiempo no es obstáculo para quien sabe esperar.",
     position: [6.5, 0.9, 2],
     room: "SALA DE ESPERA",
   });
@@ -261,11 +261,11 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   addDecor(scene, -8.5, 1.2, 1, 0.3, 0.3, 0.3, 0x2a5c4a);
   // Escalera móvil (prop decorativo)
   addBox(scene, walls, -11, 0, -10.5, 0.5, 2.2, 0xa88b4a);
-  // PIN 05 — encima de un archivador
-  pinSpots.push({
+  // CASO 05 — encima de un archivador
+  caseFiles.push({
     id: 5,
-    title: "Pin del Archivo",
-    flavor: "Entre correspondencia del año 1989. Sobre del remitente deteriorado.",
+    title: "El solicitante de 1989",
+    flavor: "Mi expediente lleva archivado desde 1989. Solicito su reapertura. Los sentimientos no prescriben, al menos según el artículo 4 del Reglamento Afectivo.",
     position: [-12.8, 2.3, 2],
     room: "ARCHIVO DE CARTAS",
   });
@@ -279,11 +279,11 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   addDecor(scene, -13, 2.1, -9, 0.8, 0.1, 0.4, 0xf0e5c5); // tope
   // Máquina de café
   addBox(scene, walls, -6.5, -3, -6, -2.5, 1.0, 0xc9b98f);
-  // PIN 06 — encima de vending
-  pinSpots.push({
+  // CASO 06 — encima de vending
+  caseFiles.push({
     id: 6,
-    title: "Pin del Snack",
-    flavor: "Premio de promoción vencida. Sabor: no documentado.",
+    title: "El del café sin nombre",
+    flavor: "Siempre pedíamos el mismo café, a la misma hora, sin saberlo. Un día coincidimos. El café se enfrió. Nunca más lo tomé caliente.",
     position: [-13, 2.5, -9],
     room: "CAFETERÍA",
   });
@@ -302,19 +302,19 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   addDecor(scene, 6.75, 1.2, -7.5, 0.6, 0.45, 0.05, 0x3ade6a); // pantalla verde
   // Teléfono de baquelita (mesita aparte)
   addBox(scene, walls, 12, -7, 13, -6, 0.8, 0x1a1a16);
-  // PIN 07 — en la bandeja del escáner
-  pinSpots.push({
+  // CASO 07 — en la bandeja del escáner
+  caseFiles.push({
     id: 7,
-    title: "Pin del Escáner",
-    flavor: "Impreso automáticamente tras resultado perfecto (100%), luego invalidado.",
+    title: "El caso del 100%",
+    flavor: "El escáner marcó compatibilidad del 100%. Me negué a creerlo porque parecía demasiado fácil. Pedí una segunda opinión. El resultado fue el mismo. Seguí negándolo.",
     position: [5.75, 1.7, -3.25],
     room: "SALA DE MÁQUINAS EMOCIONALES",
   });
-  // PIN 08 — sobre la fotocopiadora
-  pinSpots.push({
+  // CASO 08 — sobre la fotocopiadora
+  caseFiles.push({
     id: 8,
-    title: "Pin de la Fotocopiadora",
-    flavor: "Hallado en la salida de papel. Copia n.º 37 de 37.",
+    title: "La carta y sus copias",
+    flavor: "Hice treinta y siete copias de su carta. Una por cada razón que encontré para no enviarla. La carta original también está aquí.",
     position: [10.75, 1.45, -7.25],
     room: "SALA DE MÁQUINAS EMOCIONALES",
   });
@@ -336,11 +336,11 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
       addBox(scene, walls, x - 0.35, z + 0.3, x + 0.35, z + 0.5, 1.0, 0x3c1e22); // respaldo
     }
   }
-  // PIN 09 — bajo el micrófono
-  pinSpots.push({
+  // CASO 09 — bajo el micrófono
+  caseFiles.push({
     id: 9,
-    title: "Pin del Reencuentro",
-    flavor: "Perdido durante discurso de clausura de la 46ª Ceremonia.",
+    title: "El de la fila central",
+    flavor: "Durante el discurso me giré a buscarla entre el público. Cuando me di vuelta de nuevo ya habían terminado. No sé lo que dijeron.",
     position: [0, 0.85, -16.2],
     room: "AUDITORIO",
   });
@@ -351,11 +351,11 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   // Banco
   addBox(scene, walls, 12.5, -12, 13.5, -11, 0.5, 0x3a2416);
   addBox(scene, walls, 12.5, -12, 13.5, -11.2, 1.0, 0x3a2416);
-  // PIN 10 — fondo de la fuente
-  pinSpots.push({
+  // CASO 10 — fondo de la fuente
+  caseFiles.push({
     id: 10,
-    title: "Pin de la Fuente",
-    flavor: "Tirado como moneda de deseo. Motivo: clasificado.",
+    title: "El último deseo",
+    flavor: "Tiré el expediente a la fuente como si fuera un deseo. No porque creyera en esas cosas. Sino porque ya no sabía qué otra cosa hacer con él.",
     position: [10, 0.3, -14],
     room: "PATIO INTERIOR",
   });
@@ -363,7 +363,7 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   // --- SUELO EXTERIOR (niebla) ---
   addFloor(scene, -60, -60, 60, 60, 0x2a2a26, "ground", -0.05);
 
-  return { walls, pinSpots, zones, interactables };
+  return { walls, caseFiles, zones, interactables };
 }
 
 // ============================================================

@@ -3,7 +3,7 @@ import { buildWorld, type BuiltWorld } from "./world";
 import { Player } from "./player";
 import { FollowCamera } from "./cam";
 import { TouchControls } from "./controls";
-import { PinManager } from "./pins";
+import { CaseManager } from "./pins";
 import { UI } from "./ui";
 import { Audio } from "./audio";
 
@@ -14,7 +14,7 @@ export class Game {
   private cam3p: FollowCamera;
   private player: Player;
   private controls: TouchControls;
-  private pins: PinManager;
+  private cases: CaseManager;
   private ui: UI;
   private audio = new Audio();
   private world: BuiltWorld;
@@ -44,7 +44,7 @@ export class Game {
     this.scene.add(this.player.mesh);
 
     this.world = buildWorld(this.scene);
-    this.pins = new PinManager(this.scene, this.world.pinSpots);
+    this.cases = new CaseManager(this.scene, this.world.caseFiles);
 
     this.ui = new UI({
       onStart: () => this.onStart(),
@@ -59,7 +59,7 @@ export class Game {
       setTimeout(() => this.onResize(), 120)
     );
 
-    this.ui.setCounter(0, this.pins.total);
+    this.ui.setCounter(0, this.cases.total);
   }
 
   private setupScene() {
@@ -128,16 +128,15 @@ export class Game {
       this.player.update(dt, input, this.world.walls, this.cam3p);
       this.cam3p.update(dt, this.player.pos, input.lookDX, this.world.walls);
 
-      const collected = this.pins.update(dt, this.player.pos, input.interactPressed);
+      const collected = this.cases.update(dt, this.player.pos, input.interactPressed);
       if (collected) {
         this.audio.tintineo();
-        this.ui.showPlacard(collected, this.pins.collected, this.pins.total);
-        this.ui.setCounter(this.pins.collected, this.pins.total);
-        this.player.setBadgeGlow(this.pins.collected);
+        this.ui.showPlacard(collected, this.cases.collected, this.cases.total);
+        this.ui.setCounter(this.cases.collected, this.cases.total);
+        this.player.setBadgeGlow(this.cases.collected);
 
-        if (this.pins.collected >= this.pins.total) {
+        if (this.cases.collected >= this.cases.total) {
           this.finished = true;
-          // Pequeño delay para oír el último tintineo
           setTimeout(() => {
             this.audio.campana();
             this.ui.showOutro(this.elapsed, this.computeRank(this.elapsed));
@@ -158,7 +157,7 @@ export class Game {
         try { this.audio.click(); } catch (_) {}
       }
 
-      this.ui.setPrompt(this.pins.nearbyPrompt() || (nearObj ? nearObj.prompt : ""));
+      this.ui.setPrompt(this.cases.nearbyPrompt() || (nearObj ? nearObj.prompt : ""));
 
       // Ubicación actual por zonas
       const zoneName = this.currentZone();
