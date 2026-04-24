@@ -3,11 +3,22 @@ import { ps2Lambert, ps2Basic } from "./ps2";
 import { signTexture, posterTexture, carpetTexture } from "./textures";
 import type { PinSpot } from "./pins";
 
+export type Interactable = {
+  mesh: THREE.Mesh;
+  wallBox: THREE.Box3;
+  prompt: string;
+  range: number;
+  activated: boolean;
+  activate(): void;
+  update(dt: number): void;
+};
+
 export type BuiltWorld = {
   walls: THREE.Box3[];
   pinSpots: PinSpot[];
   /** Zonas etiquetadas (x1, z1, x2, z2, name) para mostrar "ubicación actual" */
   zones: { x1: number; z1: number; x2: number; z2: number; name: string }[];
+  interactables: Interactable[];
 };
 
 const WALL_HEIGHT = 3.2;
@@ -16,6 +27,7 @@ const WALL_THICKNESS = 0.3;
 export function buildWorld(scene: THREE.Scene): BuiltWorld {
   const walls: THREE.Box3[] = [];
   const zones: BuiltWorld["zones"] = [];
+  const interactables: Interactable[] = [];
 
   // --- PISOS POR SALA (colores distintos = personalidad por zona) ---
   // Recepción (terciopelo bordó + moquette)
@@ -204,7 +216,45 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
     addBox(scene, walls, -13.6, z - 0.4, -12, z + 0.4, 2.0, 0x3a5c4a); // verde institucional
     addBox(scene, walls, -13.6, z - 0.4, -12, z + 0.4, 2.05, 0x2a4a3a); // tapa
   }
-  addBox(scene, walls, -5, 5, -4, 5.8, 2.0, 0x3a5c4a);
+  // Archivero bloqueador — interactuable (A para moverlo y despejar el pasillo)
+  {
+    const bw = 1, bd = 0.8, bh = 2.0;
+    const scx = -4.5, scz = 5.4; // centro inicial (bloquea la puerta)
+    const ecz = 2.4;             // destino: más al norte dentro del archivo
+    const geo = new THREE.BoxGeometry(bw, bh, bd);
+    const mat = ps2Lambert({ color: 0x3a5c4a });
+    const archMesh = new THREE.Mesh(geo, mat);
+    archMesh.position.set(scx, bh / 2, scz);
+    scene.add(archMesh);
+    const archBox = new THREE.Box3(
+      new THREE.Vector3(scx - bw / 2, 0, scz - bd / 2),
+      new THREE.Vector3(scx + bw / 2, bh, scz + bd / 2)
+    );
+    walls.push(archBox);
+    let moveT = 0;
+    const MOVE_DUR = 0.7;
+    const archivero: Interactable = {
+      mesh: archMesh,
+      wallBox: archBox,
+      prompt: "MOVER ARCHIVERO",
+      range: 1.8,
+      activated: false,
+      activate() {
+        if (this.activated) return;
+        this.activated = true;
+        // Despejar colisión de inmediato para que el jugador pase
+        archBox.min.set(scx - bw / 2, 0, ecz - bd / 2);
+        archBox.max.set(scx + bw / 2, bh, ecz + bd / 2);
+      },
+      update(dt: number) {
+        if (!this.activated || moveT >= 1) return;
+        moveT = Math.min(moveT + dt / MOVE_DUR, 1);
+        const t = moveT * moveT * (3 - 2 * moveT); // smooth-step
+        archMesh.position.z = scz + (ecz - scz) * t;
+      },
+    };
+    interactables.push(archivero);
+  }
   // Mesa de trabajo
   addBox(scene, walls, -10, 0, -7, 2, 0.9, 0x6a4a30);
   // Lámpara verde (cubito)
@@ -313,7 +363,7 @@ export function buildWorld(scene: THREE.Scene): BuiltWorld {
   // --- SUELO EXTERIOR (niebla) ---
   addFloor(scene, -60, -60, 60, 60, 0x2a2a26, "ground", -0.05);
 
-  return { walls, pinSpots, zones };
+  return { walls, pinSpots, zones, interactables };
 }
 
 // ============================================================

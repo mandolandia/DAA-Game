@@ -144,7 +144,21 @@ export class Game {
           }, 900);
         }
       }
-      this.ui.setPrompt(this.pins.nearbyPrompt());
+
+      // Interactuables: animar + detectar proximidad
+      for (const obj of this.world.interactables) obj.update(dt);
+      const nearObj = this.world.interactables.find((obj) => {
+        if (obj.activated) return false;
+        const dx = obj.mesh.position.x - this.player.pos.x;
+        const dz = obj.mesh.position.z - this.player.pos.z;
+        return Math.hypot(dx, dz) < obj.range;
+      }) ?? null;
+      if (nearObj && input.interactPressed && !collected) {
+        nearObj.activate();
+        try { this.audio.click(); } catch (_) {}
+      }
+
+      this.ui.setPrompt(this.pins.nearbyPrompt() || (nearObj ? nearObj.prompt : ""));
 
       // Ubicación actual por zonas
       const zoneName = this.currentZone();
