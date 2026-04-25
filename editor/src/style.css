@@ -239,6 +239,187 @@ html, body {
 .inspector .row label {
   margin-bottom: 0;
 }
+
+/* === Texts tab === */
+.texts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 18px;
+  max-width: 1400px;
+}
+.t-sec {
+  background: var(--bg-2);
+  border: 1px solid rgba(244, 231, 196, 0.12);
+  padding: 16px 18px 18px;
+}
+.t-sec h3 {
+  color: var(--gold);
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+  border-bottom: 1px solid rgba(231, 198, 106, 0.25);
+  padding-bottom: 8px;
+}
+.t-sec label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+  margin-bottom: 12px;
+}
+.t-sec input,
+.t-sec textarea,
+.t-sec select {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  background: var(--bg-3);
+  border: 1px solid rgba(244, 231, 196, 0.2);
+  color: var(--ui);
+  padding: 6px 8px;
+  font: inherit;
+  font-size: 12px;
+  letter-spacing: normal;
+  text-transform: none;
+  resize: vertical;
+}
+.t-sec textarea {
+  font-family: ui-monospace, "Courier New", Menlo, monospace;
+  line-height: 1.5;
+}
+.t-sec input:focus,
+.t-sec textarea:focus,
+.t-sec select:focus {
+  outline: 1px solid var(--gold);
+  border-color: var(--gold);
+}
+.t-sec .row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.t-sec .row label {
+  margin-bottom: 0;
+}
+
+/* Paragraphs editor */
+.paragraphs {
+  margin-bottom: 12px;
+}
+.paragraphs-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.paragraphs-head .lbl {
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+}
+.para-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px;
+  margin-bottom: 6px;
+  align-items: start;
+}
+
+/* Ranks editor */
+.ranks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ranks-head {
+  display: grid;
+  grid-template-columns: 160px 1fr 28px;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+}
+.ranks-head .col {
+  padding-left: 2px;
+}
+.rank-row {
+  display: grid;
+  grid-template-columns: 160px 1fr 28px;
+  gap: 6px;
+  align-items: center;
+}
+.rank-row input {
+  margin-top: 0;
+}
+
+/* Cases inline */
+.case-row {
+  border-top: 1px dashed rgba(244, 231, 196, 0.12);
+  padding: 10px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.case-row:first-child {
+  border-top: none;
+  padding-top: 0;
+}
+.case-id {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+.case-id .case-room {
+  color: var(--ui-dim);
+  margin-left: 8px;
+  font-weight: normal;
+}
+
+/* Players */
+.player-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.player-id {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+}
+
+/* Buttons compactos */
+.t-sec button.ghost,
+.t-sec button.small {
+  background: transparent;
+  border: 1px solid var(--ui-dim);
+  color: var(--ui);
+  padding: 4px 9px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.t-sec button.small {
+  padding: 3px 7px;
+  font-size: 9px;
+}
+.t-sec button.ghost:hover:not(:disabled) {
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.t-sec button.danger:hover {
+  border-color: var(--burgundy);
+  color: #f4a;
+}
 .placeholder {
   max-width: 640px;
   border: 1px dashed var(--ui-dim);

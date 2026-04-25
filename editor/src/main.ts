@@ -1,6 +1,7 @@
 import { EditorState } from "./state";
 import { MapEditor } from "./map";
 import { Preview3D } from "./preview3d";
+import { TextsEditor } from "./texts";
 
 const state = new EditorState();
 
@@ -15,8 +16,10 @@ const preview3dViewport = document.getElementById("preview3dViewport")!;
 const statusMsg = document.getElementById("statusMsg")!;
 const statusFiles = document.getElementById("statusFiles")!;
 const mapPane = document.querySelector<HTMLElement>('section[data-pane="map"]')!;
+const textsPane = document.querySelector<HTMLElement>('section[data-pane="texts"]')!;
 
 let mapEditor: MapEditor | null = null;
+let textsEditor: TextsEditor | null = null;
 let preview3d: Preview3D | null = null;
 
 // Tab switching
@@ -82,9 +85,11 @@ window.addEventListener("keydown", (e) => {
     statusMsg.textContent = "Contenido cargado.";
     statusFiles.textContent = `${state.content.cases.length} casos · ${state.content.npcs.length} NPCs · ${state.content.players.length} players`;
 
-    // Reemplazar el placeholder de la tab Mapa por el editor real
+    // Reemplazar placeholders por editores reales
     mapPane.innerHTML = "";
     mapEditor = new MapEditor(mapPane, state);
+    textsPane.innerHTML = "";
+    textsEditor = new TextsEditor(textsPane, state);
 
     preview3d = new Preview3D(preview3dViewport, state);
   } catch (err) {
