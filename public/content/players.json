@@ -1,0 +1,51 @@
+[
+  {
+    "id": "tattoo",
+    "name": "Agente del Tatuaje",
+    "skin": "player-tattoo",
+    "style": {
+      "skin": "#dfba8a",
+      "hair": "#6a3a1a",
+      "hairLong": false,
+      "shirt": "#8b2d3a",
+      "pants": "#141414",
+      "belt": "#0a0a08",
+      "glasses": false,
+      "mustache": false,
+      "tattoos": true,
+      "buttons": false
+    }
+  },
+  {
+    "id": "diplomatico",
+    "name": "Agente Diplomático",
+    "skin": "player-diplomat",
+    "style": {
+      "skin": "#dfba8a",
+      "hair": "#dfba8a",
+      "hairLong": false,
+      "shirt": "#2f6670",
+      "pants": "#2f6670",
+      "glasses": false,
+      "mustache": false,
+      "tattoos": false,
+      "buttons": true
+    }
+  },
+  {
+    "id": "veterana",
+    "name": "Agente Veterana",
+    "skin": "player-veteran",
+    "style": {
+      "skin": "#cfa57a",
+      "hair": "#1a1310",
+      "hairLong": true,
+      "shirt": "#2a4a2a",
+      "pants": "#2a4a2a",
+      "glasses": true,
+      "mustache": true,
+      "tattoos": false,
+      "buttons": false
+    }
+  }
+]

@@ -1,15 +1,25 @@
 import { Game } from "./game";
+import { loadContent } from "./content";
 
-// Mostrar errores en pantalla (clave en mobile donde no hay consola visible).
 installErrorOverlay();
 
 const canvas = document.getElementById("game") as HTMLCanvasElement | null;
 if (!canvas) throw new Error("Canvas #game no encontrado");
 
-const game = new Game(canvas);
-game.start();
+loadContent()
+  .then((content) => {
+    const game = new Game(canvas, content);
+    game.start();
+  })
+  .catch((err) => {
+    console.error(err);
+    const overlay = document.createElement("div");
+    overlay.style.cssText =
+      "position:fixed;inset:0;z-index:99999;background:#5a1d26;color:#f4e7c4;font:12px monospace;padding:24px;white-space:pre-wrap;";
+    overlay.textContent = `[D.A.A. · ERROR]\nNo se pudo cargar el contenido del juego:\n${err}`;
+    document.body.appendChild(overlay);
+  });
 
-// Evitar scroll / gestures raros en iOS
 document.addEventListener(
   "gesturestart",
   (e) => e.preventDefault(),

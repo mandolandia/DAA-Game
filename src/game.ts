@@ -4,9 +4,10 @@ import { Player, pickRandomPlayerStyle } from "./player";
 import { FollowCamera } from "./cam";
 import { TouchControls } from "./controls";
 import { CaseManager } from "./pins";
-import { NPCManager, type NPCSpawn } from "./npcs";
+import { NPCManager } from "./npcs";
 import { UI } from "./ui";
 import { Audio } from "./audio";
+import type { ContentBundle } from "./content";
 
 export class Game {
   private scene = new THREE.Scene();
@@ -24,10 +25,13 @@ export class Game {
   private running = false;
   private elapsed = 0;
   private finished = false;
+  private content: ContentBundle;
+  private projVec = new THREE.Vector3();
   /** Resolución de render (canvas real). Pantalla hace upscale con CSS. */
   private readonly downscale = 3;
 
-  constructor(private canvas: HTMLCanvasElement) {
+  constructor(private canvas: HTMLCanvasElement, content: ContentBundle) {
+    this.content = content;
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       antialias: false,
@@ -40,31 +44,18 @@ export class Game {
 
     this.camera = new THREE.PerspectiveCamera(58, 1, 0.1, 120);
     this.cam3p = new FollowCamera(this.camera);
-    this.player = new Player(pickRandomPlayerStyle());
-    // Posición inicial: Recepción, mirando hacia el norte (hacia el pasillo)
+    this.player = new Player(pickRandomPlayerStyle(content.players));
     this.player.pos.set(0, 0, 12);
     this.scene.add(this.player.mesh);
 
-    this.world = buildWorld(this.scene);
+    this.world = buildWorld(this.scene, content.cases);
     this.cases = new CaseManager(this.scene, this.world.caseFiles);
-
-    // Empleados del Pabellón caminando por las distintas zonas
-    const npcSpawns: NPCSpawn[] = [
-      { x: 6, z: 10, radius: 3 },    // Recepción (derecha)
-      { x: -8, z: 10, radius: 3 },   // Recepción (izquierda)
-      { x: 0, z: 3, radius: 1.5 },   // Pasillo (entrada)
-      { x: 0, z: -4, radius: 2 },    // Pasillo (cerca del Fundador)
-      { x: 8, z: 3, radius: 2.5 },   // Sala de Espera
-      { x: -10, z: 3, radius: 2.5 }, // Archivo de Cartas
-      { x: -10, z: -5, radius: 2.5 },// Cafetería
-      { x: 8, z: -5, radius: 2.5 },  // Máquinas Emocionales
-      { x: 0, z: -13, radius: 3 },   // Auditorio
-    ];
-    this.npcs = new NPCManager(this.scene, npcSpawns);
+    this.npcs = new NPCManager(this.scene, content.npcs);
 
     this.ui = new UI({
       onStart: () => this.onStart(),
       onRestart: () => this.onRestart(),
+      texts: content.texts,
     });
 
     this.controls = new TouchControls();
@@ -79,7 +70,6 @@ export class Game {
   }
 
   private setupScene() {
-    // Niebla verde-beige institucional
     const fogColor = new THREE.Color(0x8a9a8a);
     this.scene.background = fogColor;
     this.scene.fog = new THREE.Fog(fogColor, 10, 38);
@@ -91,7 +81,6 @@ export class Game {
     dir.position.set(10, 25, 8);
     this.scene.add(dir);
 
-    // Ambient leve azulado para el patio
     const amb = new THREE.AmbientLight(0x404860, 0.15);
     this.scene.add(amb);
   }
@@ -109,14 +98,12 @@ export class Game {
   }
 
   start() {
-    // Render un frame estático ya para que se vea el fondo detrás del intro
     this.renderer.render(this.scene, this.camera);
     requestAnimationFrame(this.loop);
   }
 
   private onStart() {
     if (this.running) return;
-    // Audio puede fallar en navegadores restrictivos — no bloquear el arranque.
     try {
       this.audio.resume();
       this.audio.startMuzak();
@@ -133,6 +120,16 @@ export class Game {
     window.location.reload();
   }
 
+  /** Proyecta una posición de mundo (x,1.9,z) a píxeles de pantalla. */
+  private projectToScreen(x: number, z: number): { sx: number; sy: number } | null {
+    this.projVec.set(x, 1.9, z);
+    this.projVec.project(this.camera);
+    if (this.projVec.z > 1) return null; // detrás de la cámara
+    const sx = (this.projVec.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-this.projVec.y * 0.5 + 0.5) * window.innerHeight;
+    return { sx, sy };
+  }
+
   private loop = () => {
     requestAnimationFrame(this.loop);
     const dt = Math.min(this.clock.getDelta(), 0.05);
@@ -145,12 +142,11 @@ export class Game {
       this.cam3p.update(dt, this.player.pos, input.lookDX, this.world.walls);
       this.npcs.update(dt, this.world.walls);
 
-      // No permitir recolectar mientras se lee un expediente previo
       const canPick = !this.ui.isPlacardOpen();
       const collected = this.cases.update(dt, this.player.pos, canPick && input.interactPressed);
       if (collected) {
         this.audio.tintineo();
-        this.ui.showPlacard(collected, this.cases.collected, this.cases.total);
+        this.ui.showPlacard(collected, this.cases.collected);
         this.ui.setCounter(this.cases.collected, this.cases.total);
         this.player.setBadgeGlow(this.cases.collected);
 
@@ -158,12 +154,11 @@ export class Game {
           this.finished = true;
           setTimeout(() => {
             this.audio.campana();
-            this.ui.showOutro(this.elapsed, this.computeRank(this.elapsed));
+            this.ui.showOutro(this.elapsed, this.ui.computeRank(this.elapsed));
           }, 900);
         }
       }
 
-      // Interactuables: animar + detectar proximidad
       for (const obj of this.world.interactables) obj.update(dt);
       const nearObj = this.world.interactables.find((obj) => {
         if (obj.activated) return false;
@@ -171,22 +166,37 @@ export class Game {
         const dz = obj.mesh.position.z - this.player.pos.z;
         return Math.hypot(dx, dz) < obj.range;
       }) ?? null;
-      if (nearObj && input.interactPressed && !collected) {
+      if (nearObj && input.interactPressed && !collected && canPick) {
         nearObj.activate();
         try { this.audio.click(); } catch (_) {}
       }
 
-      this.ui.setPrompt(this.cases.nearbyPrompt() || (nearObj ? nearObj.prompt : ""));
+      // NPC bark: si A presionada cerca de un NPC y no se colectó / activó nada
+      const nearNPC = this.npcs.nearestInteractable(this.player.pos.x, this.player.pos.z);
+      if (
+        nearNPC &&
+        input.interactPressed &&
+        canPick &&
+        !collected &&
+        !nearObj
+      ) {
+        this.ui.showBark(nearNPC.bark, () => ({ x: nearNPC.pos.x, z: nearNPC.pos.z }));
+        nearNPC.pauseTimer = 4; // se planta a hablar
+        try { this.audio.click(); } catch (_) {}
+      }
 
-      // Ubicación actual por zonas
+      // Prompt prioridad: pin > interactuable > NPC
+      let promptText = this.cases.nearbyPrompt();
+      if (!promptText && nearObj) promptText = nearObj.prompt;
+      if (!promptText && nearNPC) promptText = this.content.texts.prompts.talkNPC;
+      this.ui.setPrompt(promptText);
+
       const zoneName = this.currentZone();
       this.ui.setLocation(zoneName);
 
-      // Pasos
       const speed = Math.hypot(this.player.vel.x, this.player.vel.z);
       this.audio.stepTick(dt, speed, input.run);
     } else {
-      // Cámara sigue animando sutilmente para el fondo
       this.cam3p.update(
         dt,
         this.player.pos,
@@ -194,6 +204,8 @@ export class Game {
         this.world.walls
       );
     }
+
+    this.ui.updateBark(dt, (x, z) => this.projectToScreen(x, z));
 
     this.renderer.render(this.scene, this.camera);
   };
@@ -206,12 +218,5 @@ export class Game {
       }
     }
     return "";
-  }
-
-  private computeRank(seconds: number): string {
-    if (seconds < 300) return "AGENTE DEL MES";
-    if (seconds < 600) return "AGENTE MERITORIO";
-    if (seconds < 1200) return "AGENTE DILIGENTE";
-    return "AGENTE EN SERVICIO";
   }
 }

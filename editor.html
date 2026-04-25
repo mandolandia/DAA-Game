@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>D.A.A. · Editor</title>
+    <link rel="stylesheet" href="/editor/src/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">D.A.A. · EDITOR</div>
+        <nav class="tabs">
+          <button data-tab="map" class="active">Mapa</button>
+          <button data-tab="texts">Textos</button>
+          <button data-tab="skins">Skins</button>
+        </nav>
+        <div class="actions">
+          <button id="undoBtn" disabled>↶ Undo</button>
+          <button id="redoBtn" disabled>↷ Redo</button>
+          <button id="saveBtn" class="primary" disabled>Guardar</button>
+          <button id="preview3dBtn" class="ghost">Preview 3D ⌧</button>
+        </div>
+      </header>
+
+      <main class="content">
+        <section data-pane="map" class="pane active">
+          <div class="placeholder">
+            <h2>Mapa</h2>
+            <p>Tab pendiente — Fase 2 trae el editor 2D top-down con drag de casos, NPCs y props, más preview 3D togglable.</p>
+            <p class="hint">El contenido ya vive en <code>public/content/*.json</code> y el juego lo carga al arrancar. Por ahora podés editar a mano y recargar.</p>
+          </div>
+        </section>
+
+        <section data-pane="texts" class="pane">
+          <div class="placeholder">
+            <h2>Textos</h2>
+            <p>Tab pendiente — Fase 3 trae el formulario completo (casos, intro, outro, HUD, prompts, rangos, barks por NPC).</p>
+          </div>
+        </section>
+
+        <section data-pane="skins" class="pane">
+          <div class="placeholder">
+            <h2>Skins</h2>
+            <p>Tab pendiente — Fase 4 trae el rig UV con upload de PNG por slot (3 player + 4 NPC) y preview 3D.</p>
+          </div>
+        </section>
+
+        <aside id="preview3d" class="preview hidden">
+          <div class="preview-header">Preview 3D</div>
+          <div id="preview3dViewport"></div>
+        </aside>
+      </main>
+
+      <footer class="status">
+        <span id="statusMsg">Listo.</span>
+        <span id="statusFiles" class="files"></span>
+      </footer>
+    </div>
+
+    <script type="module" src="/editor/src/main.ts"></script>
+  </body>
+</html>

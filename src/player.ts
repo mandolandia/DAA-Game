@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { ps2Lambert } from "./ps2";
 import type { InputState } from "./controls";
 import type { FollowCamera } from "./cam";
+import type { RawPlayer } from "./content";
+import { parseColor } from "./content";
 
 const WALK_SPEED = 3.2;
 const RUN_SPEED = 5.6;
@@ -24,51 +26,25 @@ export type PlayerStyle = {
   buttons: boolean;
 };
 
-export const PLAYER_STYLES: PlayerStyle[] = [
-  {
-    id: "tattoo",
-    name: "Agente del Tatuaje",
-    skin: 0xdfba8a,
-    hair: 0x6a3a1a,
-    hairLong: false,
-    shirt: 0x8b2d3a,
-    pants: 0x141414,
-    belt: 0x0a0a08,
-    glasses: false,
-    mustache: false,
-    tattoos: true,
-    buttons: false,
-  },
-  {
-    id: "diplomatico",
-    name: "Agente Diplomático",
-    skin: 0xdfba8a,
-    hair: 0xdfba8a, // casi calvo → color piel
-    hairLong: false,
-    shirt: 0x2f6670,
-    pants: 0x2f6670,
-    glasses: false,
-    mustache: false,
-    tattoos: false,
-    buttons: true,
-  },
-  {
-    id: "veterana",
-    name: "Agente Veterana",
-    skin: 0xcfa57a,
-    hair: 0x1a1310,
-    hairLong: true,
-    shirt: 0x2a4a2a,
-    pants: 0x2a4a2a,
-    glasses: true,
-    mustache: true,
-    tattoos: false,
-    buttons: false,
-  },
-];
+export function styleFromRaw(raw: RawPlayer): PlayerStyle {
+  return {
+    id: raw.id,
+    name: raw.name,
+    skin: parseColor(raw.style.skin),
+    hair: parseColor(raw.style.hair),
+    hairLong: raw.style.hairLong,
+    shirt: parseColor(raw.style.shirt),
+    pants: parseColor(raw.style.pants),
+    belt: raw.style.belt ? parseColor(raw.style.belt) : undefined,
+    glasses: raw.style.glasses,
+    mustache: raw.style.mustache,
+    tattoos: raw.style.tattoos,
+    buttons: raw.style.buttons,
+  };
+}
 
-export function pickRandomPlayerStyle(): PlayerStyle {
-  return PLAYER_STYLES[Math.floor(Math.random() * PLAYER_STYLES.length)];
+export function pickRandomPlayerStyle(raws: RawPlayer[]): PlayerStyle {
+  return styleFromRaw(raws[Math.floor(Math.random() * raws.length)]);
 }
 
 /**
@@ -88,7 +64,7 @@ export class Player {
   private rightArm: THREE.Object3D;
   private stride = 0;
 
-  constructor(style: PlayerStyle = PLAYER_STYLES[0]) {
+  constructor(style: PlayerStyle) {
     this.style = style;
     this.body = this.build();
     this.group.add(this.body);

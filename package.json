@@ -6,6 +6,7 @@
   "description": "Pabellón 14 — Expediente Dorado. Prototipo D.A.A.",
   "scripts": {
     "dev": "vite --host",
+    "editor": "vite --host --open=/editor.html",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host"
   },

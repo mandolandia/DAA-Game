@@ -1,0 +1,44 @@
+{
+  "hud": {
+    "title": "PABELLÓN 14 · TURNO NOCTURNO",
+    "btnRun": "CORRER",
+    "btnA": "A"
+  },
+  "prompts": {
+    "pickup": "RECOGER EXPEDIENTE",
+    "moveProp": "MOVER ARCHIVERO",
+    "talkNPC": "HABLAR"
+  },
+  "intro": {
+    "h1": "D.A.A.",
+    "h2": "Sede Regional 14 — Pabellón 14",
+    "paragraphs": [
+      "<b>Informe interno 0814.</b>",
+      "Tras la 47ª Ceremonia Anual de Reconciliación, diez (10) Expedientes Sentimentales sin clasificar fueron reportados como extraviados dentro de las instalaciones del Pabellón.",
+      "Se le asigna al Agente de guardia la tarea de recuperarlos antes del relevo de las 06:00 hs.",
+      "Se recuerda que cada Expediente contiene una declaración personal bajo resguardo institucional. Trátelos con discreción."
+    ],
+    "sign": "— Dirección General.",
+    "startBtn": "Iniciar turno"
+  },
+  "outro": {
+    "h1": "Turno cerrado",
+    "h2": "Expediente dorado · completo",
+    "paragraphs": [
+      "Los diez Expedientes Sentimentales han sido restituidos al Archivo General del Departamento.",
+      "\"Buen turno, Agente. Mañana es otro día pendiente.\""
+    ],
+    "sign": "— Recepción, 06:00 hs.",
+    "restartBtn": "Nuevo turno"
+  },
+  "ranks": [
+    { "maxSeconds": 300, "title": "AGENTE DEL MES" },
+    { "maxSeconds": 600, "title": "AGENTE MERITORIO" },
+    { "maxSeconds": 1200, "title": "AGENTE DILIGENTE" },
+    { "maxSeconds": null, "title": "AGENTE EN SERVICIO" }
+  ],
+  "placard": {
+    "head": "CASO {n} / {total} · ARCHIVADO",
+    "closeHint": "TOCAR PARA CERRAR"
+  }
+}

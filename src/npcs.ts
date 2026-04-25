@@ -1,8 +1,10 @@
 import * as THREE from "three";
 import { ps2Lambert } from "./ps2";
+import type { RawNPCSpawn } from "./content";
 
 const NPC_RADIUS = 0.36;
 const NPC_SPEED = 1.3;
+export const NPC_INTERACT_RANGE = 1.6;
 
 type NPCStyle = {
   skin: number;
@@ -14,25 +16,21 @@ type NPCStyle = {
   beard: boolean;
 };
 
-const SKIN_TONES = [0xdfba8a, 0xcfa57a, 0xb0825a, 0x8a5d3a, 0xe5c6a0];
-const HAIR_TONES = [0x141310, 0x2a1a10, 0x5a3a20, 0x3a2810];
-const TIE_TONES = [0x8b2d2d, 0x1a3a5a, 0x2a5c3a, 0x4a2a5c, 0x5a4a1a];
-const PANTS_TONES = [0x1a2a4a, 0x4a3a1a, 0x2a2a30, 0x1a1a1a, 0x3a3a42];
+/** 4 skins canónicas, una por slot. */
+const NPC_SKIN_STYLES: Record<string, NPCStyle> = {
+  "npc-1": { skin: 0xdfba8a, hair: 0x2a1a10, tie: 0x8b2d2d, pants: 0x1a2a4a, glasses: true,  mustache: true,  beard: false },
+  "npc-2": { skin: 0xcfa57a, hair: 0x3a2810, tie: 0x2a5c3a, pants: 0x4a3a1a, glasses: false, mustache: false, beard: false },
+  "npc-3": { skin: 0xb0825a, hair: 0x141310, tie: 0x2a5c3a, pants: 0x2a2a30, glasses: false, mustache: false, beard: false },
+  "npc-4": { skin: 0x8a5d3a, hair: 0x141310, tie: 0x1a3a5a, pants: 0x1a1a1a, glasses: true,  mustache: false, beard: true  },
+};
 
-function randomStyle(): NPCStyle {
-  const r = Math.random;
-  return {
-    skin: SKIN_TONES[Math.floor(r() * SKIN_TONES.length)],
-    hair: HAIR_TONES[Math.floor(r() * HAIR_TONES.length)],
-    tie: TIE_TONES[Math.floor(r() * TIE_TONES.length)],
-    pants: PANTS_TONES[Math.floor(r() * PANTS_TONES.length)],
-    glasses: r() < 0.35,
-    mustache: r() < 0.25,
-    beard: r() < 0.15,
-  };
+function styleForSlot(slot: string): NPCStyle {
+  return NPC_SKIN_STYLES[slot] ?? NPC_SKIN_STYLES["npc-1"];
 }
 
-type NPC = {
+export type NPC = {
+  id: string;
+  bark: string;
   group: THREE.Group;
   pos: THREE.Vector3;
   facing: number;
@@ -50,33 +48,29 @@ type NPC = {
   homeRadius: number;
 };
 
-export type NPCSpawn = {
-  x: number;
-  z: number;
-  radius: number;
-};
-
 export class NPCManager {
   npcs: NPC[] = [];
 
-  constructor(scene: THREE.Scene, spawns: NPCSpawn[]) {
+  constructor(scene: THREE.Scene, spawns: RawNPCSpawn[]) {
     for (const sp of spawns) {
       this.spawn(scene, sp);
     }
   }
 
-  private spawn(scene: THREE.Scene, sp: NPCSpawn) {
-    const style = randomStyle();
+  private spawn(scene: THREE.Scene, sp: RawNPCSpawn) {
+    const style = styleForSlot(sp.skin);
     const group = buildNPC(style);
-    const pos = new THREE.Vector3(sp.x, 0, sp.z);
+    const pos = new THREE.Vector3(sp.position[0], 0, sp.position[1]);
     group.position.copy(pos);
     scene.add(group);
     this.npcs.push({
+      id: sp.id,
+      bark: sp.bark,
       group,
       pos,
       facing: Math.random() * Math.PI * 2,
-      targetX: sp.x,
-      targetZ: sp.z,
+      targetX: sp.position[0],
+      targetZ: sp.position[1],
       retargetTimer: Math.random() * 2,
       pauseTimer: 0,
       leftLeg: group.getObjectByName("legL")!,
@@ -84,10 +78,26 @@ export class NPCManager {
       leftArm: group.getObjectByName("armL")!,
       rightArm: group.getObjectByName("armR")!,
       stride: 0,
-      homeX: sp.x,
-      homeZ: sp.z,
+      homeX: sp.position[0],
+      homeZ: sp.position[1],
       homeRadius: sp.radius,
     });
+  }
+
+  /** Devuelve el NPC más cercano dentro del rango de interacción, o null. */
+  nearestInteractable(playerX: number, playerZ: number): NPC | null {
+    let best: NPC | null = null;
+    let bestDist = NPC_INTERACT_RANGE;
+    for (const n of this.npcs) {
+      const dx = n.pos.x - playerX;
+      const dz = n.pos.z - playerZ;
+      const d = Math.hypot(dx, dz);
+      if (d < bestDist) {
+        bestDist = d;
+        best = n;
+      }
+    }
+    return best;
   }
 
   update(dt: number, walls: THREE.Box3[]) {

@@ -1,0 +1,65 @@
+[
+  {
+    "id": "recepcion-derecha",
+    "skin": "npc-1",
+    "position": [6, 10],
+    "radius": 3,
+    "bark": "Buenas noches, agente. Permanezca alerta."
+  },
+  {
+    "id": "recepcion-izquierda",
+    "skin": "npc-2",
+    "position": [-8, 10],
+    "radius": 3,
+    "bark": "El timbre lleva tres meses descompuesto."
+  },
+  {
+    "id": "pasillo-entrada",
+    "skin": "npc-3",
+    "position": [0, 3],
+    "radius": 1.5,
+    "bark": "¿Buscando a alguien? Yo también."
+  },
+  {
+    "id": "pasillo-fundador",
+    "skin": "npc-4",
+    "position": [0, -4],
+    "radius": 2,
+    "bark": "El Fundador escuchaba mejor de noche."
+  },
+  {
+    "id": "sala-espera",
+    "skin": "npc-1",
+    "position": [8, 3],
+    "radius": 2.5,
+    "bark": "Mi número aún no aparece. Lleva una hora."
+  },
+  {
+    "id": "archivo",
+    "skin": "npc-2",
+    "position": [-10, 3],
+    "radius": 2.5,
+    "bark": "El polvo es del año 1987. No del 88."
+  },
+  {
+    "id": "cafeteria",
+    "skin": "npc-4",
+    "position": [-10, -5],
+    "radius": 2.5,
+    "bark": "El café del turno noche tiene su propio dialecto."
+  },
+  {
+    "id": "maquinas",
+    "skin": "npc-3",
+    "position": [8, -5],
+    "radius": 2.5,
+    "bark": "El escáner anda raro desde que se mojó."
+  },
+  {
+    "id": "auditorio",
+    "skin": "npc-1",
+    "position": [0, -13],
+    "radius": 3,
+    "bark": "Aquí se anunció el reencuentro del 73. No vino nadie."
+  }
+]
