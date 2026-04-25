@@ -1,4 +1,6 @@
 import { EditorState } from "./state";
+import { MapEditor } from "./map";
+import { Preview3D } from "./preview3d";
 
 const state = new EditorState();
 
@@ -9,8 +11,13 @@ const redoBtn = document.getElementById("redoBtn") as HTMLButtonElement;
 const saveBtn = document.getElementById("saveBtn") as HTMLButtonElement;
 const preview3dBtn = document.getElementById("preview3dBtn") as HTMLButtonElement;
 const preview3dEl = document.getElementById("preview3d")!;
+const preview3dViewport = document.getElementById("preview3dViewport")!;
 const statusMsg = document.getElementById("statusMsg")!;
 const statusFiles = document.getElementById("statusFiles")!;
+const mapPane = document.querySelector<HTMLElement>('section[data-pane="map"]')!;
+
+let mapEditor: MapEditor | null = null;
+let preview3d: Preview3D | null = null;
 
 // Tab switching
 tabsEl.addEventListener("click", (e) => {
@@ -19,14 +26,17 @@ tabsEl.addEventListener("click", (e) => {
   const tab = btn.dataset.tab!;
   for (const t of tabsEl.querySelectorAll("button")) t.classList.toggle("active", t === btn);
   for (const p of panes) p.classList.toggle("active", p.dataset.pane === tab);
+  if (tab === "map" && mapEditor) mapEditor.render();
 });
 
 // Preview toggle
 preview3dBtn.addEventListener("click", () => {
+  const willHide = !preview3dEl.classList.contains("hidden");
   preview3dEl.classList.toggle("hidden");
   preview3dBtn.textContent = preview3dEl.classList.contains("hidden")
     ? "Preview 3D ⌧"
     : "Preview 3D ✓";
+  if (preview3d) preview3d.setActive(!willHide);
 });
 
 // Toolbar
@@ -43,16 +53,17 @@ saveBtn.addEventListener("click", async () => {
   }
 });
 
-// Re-render botones según el state
 state.subscribe(() => {
   undoBtn.disabled = !state.canUndo();
   redoBtn.disabled = !state.canRedo();
   saveBtn.disabled = !state.isDirty();
 });
 
-// Atajos de teclado
 window.addEventListener("keydown", (e) => {
   const meta = e.metaKey || e.ctrlKey;
+  const tag = (e.target as HTMLElement | null)?.tagName;
+  // No interferir cuando se está escribiendo en un input
+  if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
   if (meta && e.key === "z" && !e.shiftKey) {
     e.preventDefault();
     state.undo();
@@ -65,17 +76,21 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-// Carga inicial
 (async () => {
   try {
     await state.load();
     statusMsg.textContent = "Contenido cargado.";
     statusFiles.textContent = `${state.content.cases.length} casos · ${state.content.npcs.length} NPCs · ${state.content.players.length} players`;
+
+    // Reemplazar el placeholder de la tab Mapa por el editor real
+    mapPane.innerHTML = "";
+    mapEditor = new MapEditor(mapPane, state);
+
+    preview3d = new Preview3D(preview3dViewport, state);
   } catch (err) {
-    statusMsg.textContent = `Error al cargar: ${err}. Asegurate de correr 'npm run editor' (no 'npm run preview').`;
+    statusMsg.textContent = `Error al cargar: ${err}. Asegurate de correr 'npm run editor'.`;
     console.error(err);
   }
 })();
 
-// Exponer state globalmente para que las tabs futuras lo usen
 (window as any).editorState = state;

@@ -63,11 +63,20 @@ export type Texts = {
   placard: { head: string; closeHint: string };
 };
 
+export type Wall = { x1: number; z1: number; x2: number; z2: number };
+export type Zone = { x1: number; z1: number; x2: number; z2: number; name: string; color: string };
+export type Layout = {
+  spawn: { x: number; z: number };
+  walls: Wall[];
+  zones: Zone[];
+};
+
 export type EditorContent = {
   cases: CaseFile[];
   npcs: NPCSpawn[];
   players: PlayerVariant[];
   texts: Texts;
+  layout: Layout;
 };
 
 const MAX_HISTORY = 50;
@@ -82,13 +91,14 @@ export class EditorState {
   private listeners: Set<Listener> = new Set();
 
   async load(): Promise<void> {
-    const [cases, npcs, players, texts] = await Promise.all([
+    const [cases, npcs, players, texts, layout] = await Promise.all([
       readJSON<CaseFile[]>("cases.json"),
       readJSON<NPCSpawn[]>("npcs.json"),
       readJSON<PlayerVariant[]>("players.json"),
       readJSON<Texts>("texts.json"),
+      readJSON<Layout>("layout.json"),
     ]);
-    this.content = { cases, npcs, players, texts };
+    this.content = { cases, npcs, players, texts, layout };
     this.history = [JSON.stringify(this.content)];
     this.historyIdx = 0;
     this.dirty = false;
