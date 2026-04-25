@@ -36,7 +36,15 @@ export class MapEditor {
   private view: View = { scale: 18, offsetX: 0, offsetY: 0 };
   private dragging:
     | { kind: "pan"; startX: number; startY: number; startOffX: number; startOffY: number }
-    | { kind: "entity"; sel: Exclude<Selection, null>; offsetX: number; offsetY: number }
+    | {
+        kind: "entity";
+        sel: Exclude<Selection, null>;
+        offsetX: number;
+        offsetY: number;
+        startX: number;
+        startZ: number;
+        moved: boolean;
+      }
     | null = null;
   private hoverSel: Selection = null;
 
@@ -60,23 +68,39 @@ export class MapEditor {
       <div class="map-body">
         <canvas id="mapCanvas"></canvas>
         <aside class="inspector" id="inspector">
-          <div class="empty">Click un elemento para editarlo.</div>
+          <div class="empty">Click un elemento para editarlo. <br/><br/>Tip: <b>delete</b> / <b>backspace</b> borra lo seleccionado.</div>
         </aside>
       </div>
     `;
     this.canvas = this.root.querySelector<HTMLCanvasElement>("#mapCanvas")!;
     this.ctx = this.canvas.getContext("2d")!;
     this.inspector = this.root.querySelector<HTMLElement>("#inspector")!;
+
+    // Sync inicial: medir el padre y dimensionar canvas + centrar vista
+    // antes de cualquier render, así los hit-tests caen donde toca.
+    this.syncCanvasSize(true);
     this.bind();
-    this.centerView();
-    requestAnimationFrame(() => this.render());
+    this.render();
+  }
+
+  private syncCanvasSize(centerAfter: boolean) {
+    const parent = this.canvas.parentElement!;
+    const r = parent.getBoundingClientRect();
+    if (r.width < 4 || r.height < 4) return;
+    const w = Math.floor(r.width);
+    const h = Math.floor(r.height);
+    if (this.canvas.width !== w || this.canvas.height !== h) {
+      this.canvas.width = w;
+      this.canvas.height = h;
+      if (centerAfter) this.centerView();
+    }
   }
 
   private bind() {
+    let firstResize = this.canvas.width === 0;
     const ro = new ResizeObserver(() => {
-      const r = this.canvas.parentElement!.getBoundingClientRect();
-      this.canvas.width = Math.floor(r.width);
-      this.canvas.height = Math.floor(r.height);
+      this.syncCanvasSize(firstResize);
+      firstResize = false;
       this.render();
     });
     ro.observe(this.canvas.parentElement!);
@@ -95,11 +119,17 @@ export class MapEditor {
       this.render();
     }, { passive: false });
 
+    const toCanvasCoords = (e: PointerEvent) => {
+      const r = this.canvas.getBoundingClientRect();
+      // Convertir CSS-pixels a buffer-pixels en caso de mismatch
+      const sx = (e.clientX - r.left) * (this.canvas.width / r.width);
+      const sy = (e.clientY - r.top) * (this.canvas.height / r.height);
+      return { cx: sx, cy: sy };
+    };
+
     this.canvas.addEventListener("pointerdown", (e) => {
       this.canvas.setPointerCapture(e.pointerId);
-      const r = this.canvas.getBoundingClientRect();
-      const cx = e.clientX - r.left;
-      const cy = e.clientY - r.top;
+      const { cx, cy } = toCanvasCoords(e);
 
       if (e.button === 2 || e.button === 1) {
         this.dragging = {
@@ -124,6 +154,9 @@ export class MapEditor {
           sel,
           offsetX: cx - sx,
           offsetY: cy - sy,
+          startX: ent.x,
+          startZ: ent.z,
+          moved: false,
         };
       } else {
         this.dragging = {
@@ -138,9 +171,7 @@ export class MapEditor {
     });
 
     this.canvas.addEventListener("pointermove", (e) => {
-      const r = this.canvas.getBoundingClientRect();
-      const cx = e.clientX - r.left;
-      const cy = e.clientY - r.top;
+      const { cx, cy } = toCanvasCoords(e);
 
       const wx = (cx - this.view.offsetX) / this.view.scale;
       const wz = (cy - this.view.offsetY) / this.view.scale;
@@ -157,7 +188,12 @@ export class MapEditor {
       if (this.dragging?.kind === "entity") {
         const tx = (cx - this.dragging.offsetX - this.view.offsetX) / this.view.scale;
         const tz = (cy - this.dragging.offsetY - this.view.offsetY) / this.view.scale;
-        this.setEntityPos(this.dragging.sel, snap(tx), snap(tz));
+        const nx = snap(tx);
+        const nz = snap(tz);
+        if (nx !== this.dragging.startX || nz !== this.dragging.startZ) {
+          this.dragging.moved = true;
+        }
+        this.setEntityPos(this.dragging.sel, nx, nz);
         this.renderInspector();
         this.render();
         return;
@@ -172,8 +208,8 @@ export class MapEditor {
     });
 
     const endDrag = () => {
-      if (this.dragging?.kind === "entity") {
-        this.state.commit(); // un undo step por drag
+      if (this.dragging?.kind === "entity" && this.dragging.moved) {
+        this.state.commit(); // un undo step por drag (solo si hubo movimiento real)
       }
       this.dragging = null;
     };
@@ -188,6 +224,24 @@ export class MapEditor {
       this.centerView();
       this.render();
     });
+
+    // Atajos: Delete / Backspace borra el seleccionado (si no estamos en un input)
+    window.addEventListener("keydown", (e) => {
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (!this.selection) return;
+      // Solo cuando la tab Mapa está activa
+      const mapPane = document.querySelector('section[data-pane="map"]');
+      if (!mapPane?.classList.contains("active")) return;
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        this.deleteSel();
+      } else if (e.key === "Escape") {
+        this.selection = null;
+        this.renderInspector();
+        this.render();
+      }
+    });
   }
 
   private centerView() {
@@ -200,18 +254,18 @@ export class MapEditor {
 
   private hitTest(cx: number, cy: number): Selection {
     const c = this.state.content;
-    // Cases first (small dots, on top)
+    // Cases first (encima visualmente)
     for (let i = 0; i < c.cases.length; i++) {
       const cs = c.cases[i];
       const sx = cs.position[0] * this.view.scale + this.view.offsetX;
       const sy = cs.position[2] * this.view.scale + this.view.offsetY;
-      if (Math.hypot(cx - sx, cy - sy) < 9) return { type: "case", index: i };
+      if (Math.hypot(cx - sx, cy - sy) < 14) return { type: "case", index: i };
     }
     for (let i = 0; i < c.npcs.length; i++) {
       const n = c.npcs[i];
       const sx = n.position[0] * this.view.scale + this.view.offsetX;
       const sy = n.position[1] * this.view.scale + this.view.offsetY;
-      if (Math.hypot(cx - sx, cy - sy) < 11) return { type: "npc", index: i };
+      if (Math.hypot(cx - sx, cy - sy) < 14) return { type: "npc", index: i };
     }
     return null;
   }
@@ -259,22 +313,30 @@ export class MapEditor {
       clone.position = [orig.position[0] + 1, orig.position[1] + 1];
       this.state.content.npcs.push(clone);
       this.selection = { type: "npc", index: this.state.content.npcs.length - 1 };
-      this.state.commit();
-      this.renderInspector();
-      this.render();
+    } else {
+      const orig = this.state.content.cases[this.selection.index];
+      const clone: CaseFile = JSON.parse(JSON.stringify(orig));
+      clone.id = Math.max(...this.state.content.cases.map((c) => c.id)) + 1;
+      clone.position = [orig.position[0] + 0.5, orig.position[1], orig.position[2] + 0.5];
+      this.state.content.cases.push(clone);
+      this.selection = { type: "case", index: this.state.content.cases.length - 1 };
     }
+    this.state.commit();
+    this.renderInspector();
+    this.render();
   }
 
   private deleteSel() {
     if (!this.selection) return;
     if (this.selection.type === "npc") {
       this.state.content.npcs.splice(this.selection.index, 1);
-      this.selection = null;
-      this.state.commit();
-      this.renderInspector();
-      this.render();
+    } else {
+      this.state.content.cases.splice(this.selection.index, 1);
     }
-    // No borrar casos: el juego espera 10. Cambiar requiere refactor.
+    this.selection = null;
+    this.state.commit();
+    this.renderInspector();
+    this.render();
   }
 
   /** Re-renderiza el canvas. */
@@ -406,11 +468,10 @@ export class MapEditor {
       ctx.fillText(`#${c.id}`, cx + 9, cy + 3);
     }
 
-    // Update toolbar buttons
     const dupBtn = this.root.querySelector<HTMLButtonElement>("#duplicateBtn");
     const delBtn = this.root.querySelector<HTMLButtonElement>("#deleteBtn");
-    if (dupBtn) dupBtn.disabled = this.selection?.type !== "npc";
-    if (delBtn) delBtn.disabled = this.selection?.type !== "npc";
+    if (dupBtn) dupBtn.disabled = !this.selection;
+    if (delBtn) delBtn.disabled = !this.selection;
   }
 
   private renderInspector() {
