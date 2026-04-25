@@ -35,7 +35,6 @@ export class MapEditor {
   private selection: Selection = null;
   private view: View = { scale: 18, offsetX: 0, offsetY: 0 };
   private dragging:
-    | { kind: "pan"; startX: number; startY: number; startOffX: number; startOffY: number }
     | {
         kind: "entity";
         sel: Exclude<Selection, null>;
@@ -52,7 +51,11 @@ export class MapEditor {
     this.root = root;
     this.state = state;
     this.build();
-    state.subscribe(() => this.render());
+    state.subscribe(() => {
+      // Re-fit la primera vez que llega contenido
+      if (this.view.scale === 18) this.fitView();
+      this.render();
+    });
   }
 
   private build() {
@@ -62,7 +65,7 @@ export class MapEditor {
         <button id="duplicateBtn" class="ghost" disabled>Duplicar</button>
         <button id="deleteBtn" class="ghost danger" disabled>Borrar</button>
         <span class="spacer"></span>
-        <button id="centerBtn" class="ghost">Centrar vista</button>
+        <span class="hint">Click para seleccionar · arrastrar para mover · <b>Del</b> borra</span>
         <span id="coords" class="coords">—</span>
       </div>
       <div class="map-body">
@@ -76,14 +79,13 @@ export class MapEditor {
     this.ctx = this.canvas.getContext("2d")!;
     this.inspector = this.root.querySelector<HTMLElement>("#inspector")!;
 
-    // Sync inicial: medir el padre y dimensionar canvas + centrar vista
-    // antes de cualquier render, así los hit-tests caen donde toca.
-    this.syncCanvasSize(true);
+    this.syncCanvasSize();
     this.bind();
     this.render();
   }
 
-  private syncCanvasSize(centerAfter: boolean) {
+  /** Ajusta canvas a su contenedor y re-centra la vista para que entre todo el plano. */
+  private syncCanvasSize() {
     const parent = this.canvas.parentElement!;
     const r = parent.getBoundingClientRect();
     if (r.width < 4 || r.height < 4) return;
@@ -92,55 +94,56 @@ export class MapEditor {
     if (this.canvas.width !== w || this.canvas.height !== h) {
       this.canvas.width = w;
       this.canvas.height = h;
-      if (centerAfter) this.centerView();
     }
+    this.fitView();
+  }
+
+  /** Calcula scale + offset para que el bounding box del layout entre con margen. */
+  private fitView() {
+    if (!this.state.content) return;
+    const layout = this.state.content.layout;
+    if (!layout) return;
+    let minX = Infinity, maxX = -Infinity, minZ = Infinity, maxZ = -Infinity;
+    for (const wl of layout.walls) {
+      minX = Math.min(minX, wl.x1, wl.x2);
+      maxX = Math.max(maxX, wl.x1, wl.x2);
+      minZ = Math.min(minZ, wl.z1, wl.z2);
+      maxZ = Math.max(maxZ, wl.z1, wl.z2);
+    }
+    if (!isFinite(minX)) {
+      // fallback si layout vacío
+      minX = -16; maxX = 16; minZ = -20; maxZ = 16;
+    }
+    const cw = this.canvas.width;
+    const ch = this.canvas.height;
+    const PAD = 40;
+    const worldW = maxX - minX;
+    const worldH = maxZ - minZ;
+    const scale = Math.min((cw - 2 * PAD) / worldW, (ch - 2 * PAD) / worldH);
+    this.view.scale = scale;
+    this.view.offsetX = cw / 2 - ((minX + maxX) / 2) * scale;
+    this.view.offsetY = ch / 2 - ((minZ + maxZ) / 2) * scale;
   }
 
   private bind() {
-    let firstResize = this.canvas.width === 0;
     const ro = new ResizeObserver(() => {
-      this.syncCanvasSize(firstResize);
-      firstResize = false;
+      this.syncCanvasSize();
       this.render();
     });
     ro.observe(this.canvas.parentElement!);
 
-    this.canvas.addEventListener("wheel", (e) => {
-      e.preventDefault();
-      const factor = e.deltaY < 0 ? 1.15 : 1 / 1.15;
-      const r = this.canvas.getBoundingClientRect();
-      const cx = e.clientX - r.left;
-      const cy = e.clientY - r.top;
-      const wx = (cx - this.view.offsetX) / this.view.scale;
-      const wz = (cy - this.view.offsetY) / this.view.scale;
-      this.view.scale = Math.max(6, Math.min(80, this.view.scale * factor));
-      this.view.offsetX = cx - wx * this.view.scale;
-      this.view.offsetY = cy - wz * this.view.scale;
-      this.render();
-    }, { passive: false });
-
     const toCanvasCoords = (e: PointerEvent) => {
       const r = this.canvas.getBoundingClientRect();
-      // Convertir CSS-pixels a buffer-pixels en caso de mismatch
+      // Mapear CSS-pixels a buffer-pixels (deberían ser iguales pero por seguridad)
       const sx = (e.clientX - r.left) * (this.canvas.width / r.width);
       const sy = (e.clientY - r.top) * (this.canvas.height / r.height);
       return { cx: sx, cy: sy };
     };
 
     this.canvas.addEventListener("pointerdown", (e) => {
+      if (e.button !== 0) return; // solo click izquierdo
       this.canvas.setPointerCapture(e.pointerId);
       const { cx, cy } = toCanvasCoords(e);
-
-      if (e.button === 2 || e.button === 1) {
-        this.dragging = {
-          kind: "pan",
-          startX: cx,
-          startY: cy,
-          startOffX: this.view.offsetX,
-          startOffY: this.view.offsetY,
-        };
-        return;
-      }
 
       const sel = this.hitTest(cx, cy);
       this.selection = sel;
@@ -158,14 +161,6 @@ export class MapEditor {
           startZ: ent.z,
           moved: false,
         };
-      } else {
-        this.dragging = {
-          kind: "pan",
-          startX: cx,
-          startY: cy,
-          startOffX: this.view.offsetX,
-          startOffY: this.view.offsetY,
-        };
       }
       this.render();
     });
@@ -177,13 +172,6 @@ export class MapEditor {
       const wz = (cy - this.view.offsetY) / this.view.scale;
       const coords = this.root.querySelector<HTMLElement>("#coords");
       if (coords) coords.textContent = `x: ${wx.toFixed(2)}  z: ${wz.toFixed(2)}`;
-
-      if (this.dragging?.kind === "pan") {
-        this.view.offsetX = this.dragging.startOffX + (cx - this.dragging.startX);
-        this.view.offsetY = this.dragging.startOffY + (cy - this.dragging.startY);
-        this.render();
-        return;
-      }
 
       if (this.dragging?.kind === "entity") {
         const tx = (cx - this.dragging.offsetX - this.view.offsetX) / this.view.scale;
@@ -220,8 +208,8 @@ export class MapEditor {
     this.root.querySelector("#addNPCBtn")!.addEventListener("click", () => this.addNPC());
     this.root.querySelector("#duplicateBtn")!.addEventListener("click", () => this.duplicate());
     this.root.querySelector("#deleteBtn")!.addEventListener("click", () => this.deleteSel());
-    this.root.querySelector("#centerBtn")!.addEventListener("click", () => {
-      this.centerView();
+    this.root.querySelector("#fitBtn")?.addEventListener("click", () => {
+      this.fitView();
       this.render();
     });
 
@@ -242,14 +230,6 @@ export class MapEditor {
         this.render();
       }
     });
-  }
-
-  private centerView() {
-    const w = this.canvas.width || 800;
-    const h = this.canvas.height || 600;
-    this.view.scale = Math.min(w / 32, h / 38);
-    this.view.offsetX = w / 2;
-    this.view.offsetY = h / 2 + this.view.scale * 2;
   }
 
   private hitTest(cx: number, cy: number): Selection {

@@ -156,6 +156,19 @@ html, body {
 .map-toolbar .spacer {
   flex: 1;
 }
+.map-toolbar .hint {
+  font-size: 10px;
+  color: var(--ui-dim);
+  letter-spacing: 0.04em;
+  margin-right: 12px;
+}
+.map-toolbar .hint b {
+  color: var(--ui);
+  font-weight: normal;
+  background: var(--bg-3);
+  padding: 1px 5px;
+  border: 1px solid rgba(244, 231, 196, 0.2);
+}
 .map-toolbar .coords {
   font-size: 10px;
   color: var(--ui-dim);
