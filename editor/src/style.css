@@ -433,6 +433,111 @@ html, body {
   border-color: var(--burgundy);
   color: #f4a;
 }
+
+/* === Skins tab === */
+.skins-header {
+  margin-bottom: 18px;
+}
+.skins-header h2 {
+  color: var(--gold);
+  font-size: 14px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.skins-header p {
+  color: var(--ui-dim);
+  font-size: 11px;
+  line-height: 1.5;
+  max-width: 720px;
+}
+.skins-header a {
+  color: var(--gold);
+  text-decoration: underline;
+}
+.skins-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.skin-card {
+  background: var(--bg-2);
+  border: 1px solid rgba(244, 231, 196, 0.15);
+  display: flex;
+  flex-direction: column;
+}
+.skin-card-head {
+  padding: 8px 12px;
+  background: var(--bg-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid rgba(231, 198, 106, 0.2);
+}
+.skin-label {
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+.skin-id {
+  font-size: 10px;
+  color: var(--ui-dim);
+}
+.skin-card-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+  min-height: 180px;
+}
+.skin-png {
+  background: #0c0c0a;
+  border: 1px solid rgba(244, 231, 196, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.skin-png img {
+  image-rendering: pixelated;
+  width: 128px;
+  height: 128px;
+}
+.skin-3d {
+  background: #1a1f2a;
+  border: 1px solid rgba(244, 231, 196, 0.1);
+  position: relative;
+  min-height: 180px;
+}
+.skin-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid rgba(244, 231, 196, 0.1);
+}
+.skin-upload input[type="file"] {
+  display: none;
+}
+.skin-upload .upload-btn {
+  display: inline-block;
+  padding: 5px 12px;
+  border: 1px solid var(--gold);
+  color: var(--gold);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.skin-upload .upload-btn:hover {
+  background: rgba(231, 198, 106, 0.15);
+}
+.skin-status {
+  font-size: 10px;
+  color: var(--ui-dim);
+  font-style: italic;
+}
 .placeholder {
   max-width: 640px;
   border: 1px dashed var(--ui-dim);

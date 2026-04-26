@@ -2,6 +2,7 @@ import { EditorState } from "./state";
 import { MapEditor } from "./map";
 import { Preview3D } from "./preview3d";
 import { TextsEditor } from "./texts";
+import { SkinsEditor } from "./skins";
 
 const state = new EditorState();
 
@@ -17,9 +18,11 @@ const statusMsg = document.getElementById("statusMsg")!;
 const statusFiles = document.getElementById("statusFiles")!;
 const mapPane = document.querySelector<HTMLElement>('section[data-pane="map"]')!;
 const textsPane = document.querySelector<HTMLElement>('section[data-pane="texts"]')!;
+const skinsPane = document.querySelector<HTMLElement>('section[data-pane="skins"]')!;
 
 let mapEditor: MapEditor | null = null;
 let textsEditor: TextsEditor | null = null;
+let skinsEditor: SkinsEditor | null = null;
 let preview3d: Preview3D | null = null;
 
 // Tab switching
@@ -90,6 +93,8 @@ window.addEventListener("keydown", (e) => {
     mapEditor = new MapEditor(mapPane, state);
     textsPane.innerHTML = "";
     textsEditor = new TextsEditor(textsPane, state);
+    skinsPane.innerHTML = "";
+    skinsEditor = new SkinsEditor(skinsPane, state);
 
     preview3d = new Preview3D(preview3dViewport, state);
   } catch (err) {
