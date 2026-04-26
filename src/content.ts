@@ -49,21 +49,34 @@ export type Texts = {
   placard: { head: string; closeHint: string };
 };
 
+export type Prop =
+  | { id: string; type: "box"; cx: number; cz: number; w: number; d: number; h: number; color: string; collider?: boolean }
+  | { id: string; type: "decor"; x: number; y: number; z: number; w: number; h: number; d: number; color: string }
+  | { id: string; type: "chair"; x: number; z: number }
+  | { id: string; type: "table"; x: number; z: number }
+  | { id: string; type: "portrait"; x: number; y: number; z: number }
+  | { id: string; type: "plant"; x: number; z: number }
+  | { id: string; type: "sign"; x: number; y: number; z: number; title: string; sub?: string }
+  | { id: string; type: "statue"; x: number; z: number }
+  | { id: string; type: "fountain"; x: number; z: number };
+
 export type ContentBundle = {
   cases: CaseFile[];
   npcs: RawNPCSpawn[];
   players: RawPlayer[];
   texts: Texts;
+  props: Prop[];
 };
 
 export async function loadContent(): Promise<ContentBundle> {
-  const [cases, npcs, players, texts] = await Promise.all([
+  const [cases, npcs, players, texts, props] = await Promise.all([
     fetchJSON<CaseFile[]>("/content/cases.json"),
     fetchJSON<RawNPCSpawn[]>("/content/npcs.json"),
     fetchJSON<RawPlayer[]>("/content/players.json"),
     fetchJSON<Texts>("/content/texts.json"),
+    fetchJSON<Prop[]>("/content/props.json"),
   ]);
-  return { cases, npcs, players, texts };
+  return { cases, npcs, players, texts, props };
 }
 
 async function fetchJSON<T>(path: string): Promise<T> {

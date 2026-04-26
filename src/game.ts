@@ -48,7 +48,7 @@ export class Game {
     this.player.pos.set(0, 0, 12);
     this.scene.add(this.player.mesh);
 
-    this.world = buildWorld(this.scene, content.cases);
+    this.world = buildWorld(this.scene, content.cases, content.props);
     this.cases = new CaseManager(this.scene, this.world.caseFiles);
     this.npcs = new NPCManager(this.scene, content.npcs);
 

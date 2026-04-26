@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { ps2Lambert, ps2Basic } from "./ps2";
 import { signTexture, posterTexture, carpetTexture } from "./textures";
 import type { CaseFile } from "./pins";
+import type { Prop } from "./content";
+import { parseColor } from "./content";
 
 export type Interactable = {
   mesh: THREE.Mesh;
@@ -24,7 +26,7 @@ export type BuiltWorld = {
 const WALL_HEIGHT = 3.2;
 const WALL_THICKNESS = 0.3;
 
-export function buildWorld(scene: THREE.Scene, cases: CaseFile[]): BuiltWorld {
+export function buildWorld(scene: THREE.Scene, cases: CaseFile[], props: Prop[] = []): BuiltWorld {
   const walls: THREE.Box3[] = [];
   const zones: BuiltWorld["zones"] = [];
   const interactables: Interactable[] = [];
@@ -133,57 +135,7 @@ export function buildWorld(scene: THREE.Scene, cases: CaseFile[]): BuiltWorld {
 
   // --- PROPS POR SALA ---
   const caseFiles: CaseFile[] = cases;
-
-  // ===== RECEPCIÓN =====
-  // Mostrador
-  addBox(scene, walls, -2, 9, 4, 10.4, 1.1, 0xb09068);
-  addBox(scene, walls, -2, 9, 4, 9.2, 1.25, 0x8a6d44); // encimera
-  // Timbre (cubito dorado)
-  addDecor(scene, 1, 1.35, 9.6, 0.15, 0.1, 0.15, 0xe7c66a);
-  // Cartel "RECEPCIÓN"
-  addSign(scene, 0, 2.3, 13.7, "RECEPCIÓN", "PABELLÓN 14");
-  // Sillón y mesita
-  addBox(scene, walls, 6, 11, 9, 12.5, 0.5, 0x5a1d26);
-  addBox(scene, walls, 6, 12.5, 9, 13, 1.0, 0x5a1d26); // respaldo
-  addBox(scene, walls, -9, 11, -6, 12.5, 0.5, 0x5a1d26);
-  addBox(scene, walls, -9, 12.5, -6, 13, 1.0, 0x5a1d26);
-  // Planta de plástico (triángulo)
-  addPlant(scene, -12, 12);
-  addPlant(scene, 12, 12);
-  // Bandeja oficial (entrega final — por ahora solo decor)
-  addDecor(scene, -1, 1.3, 9.6, 0.6, 0.05, 0.3, 0xa88b4a);
-
-  // ===== PASILLO DE RETRATOS =====
-  // Retratos en las paredes
-  for (let i = 0; i < 4; i++) {
-    const z = 4 - i * 4;
-    addPortrait(scene, -2.85, 1.8, z);
-    addPortrait(scene, 2.85, 1.8, z);
-  }
-  // Banco largo al centro
-  addBox(scene, walls, -0.6, -2, 0.6, 2, 0.5, 0x3a2416);
-  // Estatua del Fundador
-  addStatue(scene, 0, -6);
-
-  // ===== SALA DE ESPERA =====
-  // Tablero numérico "AHORA ATENDIENDO: 037"
-  addSign(scene, 8.5, 2.4, 5.85, "AHORA", "037");
-  // Filas de sillas
-  for (let row = 0; row < 3; row++) {
-    const z = 4 - row * 2;
-    for (let c = 0; c < 4; c++) {
-      const x = 4.5 + c * 2;
-      addChair(scene, walls, x, z);
-    }
-  }
-
-  // ===== ARCHIVO DE CARTAS =====
-  // Archivadores pegados a paredes
-  for (let i = 0; i < 4; i++) {
-    const z = 4 - i * 2;
-    addBox(scene, walls, -13.6, z - 0.4, -12, z + 0.4, 2.0, 0x3a5c4a); // verde institucional
-    addBox(scene, walls, -13.6, z - 0.4, -12, z + 0.4, 2.05, 0x2a4a3a); // tapa
-  }
+  applyProps(scene, walls, props);
   // Archivero bloqueador — interactuable (A para moverlo y despejar el pasillo)
   {
     const bw = 1, bd = 0.8, bh = 2.0;
@@ -223,62 +175,6 @@ export function buildWorld(scene: THREE.Scene, cases: CaseFile[]): BuiltWorld {
     };
     interactables.push(archivero);
   }
-  // Mesa de trabajo
-  addBox(scene, walls, -10, 0, -7, 2, 0.9, 0x6a4a30);
-  // Lámpara verde (cubito)
-  addDecor(scene, -8.5, 1.2, 1, 0.3, 0.3, 0.3, 0x2a5c4a);
-  // Escalera móvil (prop decorativo)
-  addBox(scene, walls, -11, 0, -10.5, 0.5, 2.2, 0xa88b4a);
-
-  // ===== CAFETERÍA =====
-  // 2 mesas con 4 sillas cada una
-  addTable(scene, walls, -11, -4);
-  addTable(scene, walls, -8, -7);
-  // Vending machine
-  addBox(scene, walls, -13.5, -9.5, -12.5, -8.5, 2.2, 0x8a1d26);
-  addDecor(scene, -13, 2.1, -9, 0.8, 0.1, 0.4, 0xf0e5c5); // tope
-  // Máquina de café
-  addBox(scene, walls, -6.5, -3, -6, -2.5, 1.0, 0xc9b98f);
-
-  // ===== SALA DE MÁQUINAS EMOCIONALES =====
-  // Escáner de compatibilidad
-  addBox(scene, walls, 5, -4, 6.5, -2.5, 1.4, 0x3a4a6a);
-  addDecor(scene, 5.75, 1.6, -3.25, 0.8, 0.15, 0.8, 0xa0c0e0); // panel de luz
-  // Buzón rojo
-  addBox(scene, walls, 13, -4, 13.6, -3.4, 1.2, 0x8a1d26);
-  addDecor(scene, 13.3, 1.25, -3.7, 0.4, 0.02, 0.02, 0x141414); // ranura
-  // Fotocopiadora
-  addBox(scene, walls, 10, -8, 11.5, -6.5, 1.3, 0xd9d0b4);
-  // Terminal CRT
-  addBox(scene, walls, 6, -8, 7.5, -7, 1.0, 0x2a2a36);
-  addDecor(scene, 6.75, 1.2, -7.5, 0.6, 0.45, 0.05, 0x3ade6a); // pantalla verde
-  // Teléfono de baquelita (mesita aparte)
-  addBox(scene, walls, 12, -7, 13, -6, 0.8, 0x1a1a16);
-
-  // ===== AUDITORIO =====
-  // Escenario
-  addBox(scene, walls, -4, -17, 4, -15.5, 0.6, 0x5a1d26);
-  // Cortina atrás (alta)
-  addDecor(scene, 0, 1.8, -17.3, 8, 2.2, 0.2, 0x3c1e22);
-  // Micrófono
-  addDecor(scene, 0, 1.0, -16.2, 0.08, 0.8, 0.08, 0x141414);
-  addDecor(scene, 0, 1.5, -16.2, 0.2, 0.1, 0.2, 0x2a2a2a);
-  // Butacas (3 filas)
-  for (let row = 0; row < 3; row++) {
-    const z = -11.5 - row * 1.2;
-    for (let c = 0; c < 7; c++) {
-      const x = -3 + c * 1;
-      addBox(scene, walls, x - 0.35, z - 0.3, x + 0.35, z + 0.3, 0.5, 0x3c1e22);
-      addBox(scene, walls, x - 0.35, z + 0.3, x + 0.35, z + 0.5, 1.0, 0x3c1e22); // respaldo
-    }
-  }
-
-  // ===== PATIO INTERIOR =====
-  // Fuente
-  addFountain(scene, 10, -14);
-  // Banco
-  addBox(scene, walls, 12.5, -12, 13.5, -11, 0.5, 0x3a2416);
-  addBox(scene, walls, 12.5, -12, 13.5, -11.2, 1.0, 0x3a2416);
 
   // --- SUELO EXTERIOR (niebla) ---
   addFloor(scene, -60, -60, 60, 60, 0x2a2a26, "ground", -0.05);
@@ -575,4 +471,44 @@ function addFountain(scene: THREE.Scene, x: number, z: number) {
 
 function hexToRGB(hex: number): [number, number, number] {
   return [(hex >> 16) & 255, (hex >> 8) & 255, hex & 255];
+}
+
+/** Despacha cada prop del JSON al builder correspondiente. */
+function applyProps(scene: THREE.Scene, walls: THREE.Box3[], props: Prop[]) {
+  for (const p of props) {
+    switch (p.type) {
+      case "box": {
+        const x1 = p.cx - p.w / 2, z1 = p.cz - p.d / 2;
+        const x2 = p.cx + p.w / 2, z2 = p.cz + p.d / 2;
+        const collide = p.collider !== false;
+        if (collide) addBox(scene, walls, x1, z1, x2, z2, p.h, parseColor(p.color));
+        else addDecor(scene, p.cx, p.h / 2, p.cz, p.w, p.h, p.d, parseColor(p.color));
+        break;
+      }
+      case "decor":
+        addDecor(scene, p.x, p.y, p.z, p.w, p.h, p.d, parseColor(p.color));
+        break;
+      case "chair":
+        addChair(scene, walls, p.x, p.z);
+        break;
+      case "table":
+        addTable(scene, walls, p.x, p.z);
+        break;
+      case "portrait":
+        addPortrait(scene, p.x, p.y, p.z);
+        break;
+      case "plant":
+        addPlant(scene, p.x, p.z);
+        break;
+      case "sign":
+        addSign(scene, p.x, p.y, p.z, p.title, p.sub || undefined);
+        break;
+      case "statue":
+        addStatue(scene, p.x, p.z);
+        break;
+      case "fountain":
+        addFountain(scene, p.x, p.z);
+        break;
+    }
+  }
 }

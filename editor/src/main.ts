@@ -83,7 +83,7 @@ window.addEventListener("keydown", (e) => {
   try {
     await state.load();
     statusMsg.textContent = "Contenido cargado.";
-    statusFiles.textContent = `${state.content.cases.length} casos · ${state.content.npcs.length} NPCs · ${state.content.players.length} players`;
+    statusFiles.textContent = `${state.content.cases.length} casos · ${state.content.npcs.length} NPCs · ${state.content.props.length} props · ${state.content.players.length} players`;
 
     // Reemplazar placeholders por editores reales
     mapPane.innerHTML = "";

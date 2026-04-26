@@ -5,12 +5,67 @@
  * Eje Z mundo → eje Y pantalla (positivo = abajo)
  */
 
-import type { EditorState, CaseFile, NPCSpawn } from "./state";
+import type { EditorState, CaseFile, NPCSpawn, Prop } from "./state";
 
 type Selection =
   | { type: "case"; index: number }
   | { type: "npc"; index: number }
+  | { type: "prop"; index: number }
   | null;
+
+/** Devuelve {x,z, w?, d?} para dibujar la huella de un prop. */
+function propFootprint(p: Prop): { x: number; z: number; w: number; d: number } {
+  switch (p.type) {
+    case "box":
+      return { x: p.cx, z: p.cz, w: p.w, d: p.d };
+    case "decor":
+      return { x: p.x, z: p.z, w: p.w, d: p.d };
+    case "chair":
+      return { x: p.x, z: p.z, w: 0.7, d: 0.7 };
+    case "table":
+      return { x: p.x, z: p.z, w: 1.5, d: 1.5 };
+    case "portrait":
+      return { x: p.x, z: p.z, w: 0.4, d: 0.2 };
+    case "plant":
+      return { x: p.x, z: p.z, w: 0.7, d: 0.7 };
+    case "sign":
+      return { x: p.x, z: p.z, w: 1.6, d: 0.2 };
+    case "statue":
+      return { x: p.x, z: p.z, w: 1, d: 1 };
+    case "fountain":
+      return { x: p.x, z: p.z, w: 3.2, d: 3.2 };
+  }
+}
+
+function propColor(p: Prop): string {
+  if (p.type === "box" || p.type === "decor") return p.color;
+  return PROP_TYPE_COLORS[p.type] ?? "#888";
+}
+
+const PROP_TYPE_COLORS: Record<string, string> = {
+  chair: "#1a1a16",
+  table: "#d0c090",
+  portrait: "#3a1a1f",
+  plant: "#4a2a1f",
+  sign: "#a88b4a",
+  statue: "#a8a294",
+  fountain: "#6a5f50",
+};
+
+function setPropPos(p: Prop, x: number, z: number) {
+  if (p.type === "box") {
+    p.cx = x;
+    p.cz = z;
+  } else {
+    p.x = x;
+    p.z = z;
+  }
+}
+
+function getPropPos(p: Prop): { x: number; z: number } {
+  if (p.type === "box") return { x: p.cx, z: p.cz };
+  return { x: p.x, z: p.z };
+}
 
 type View = {
   scale: number; // pixels per world-unit
@@ -234,7 +289,7 @@ export class MapEditor {
 
   private hitTest(cx: number, cy: number): Selection {
     const c = this.state.content;
-    // Cases first (encima visualmente)
+    // Cases primero (encima visualmente)
     for (let i = 0; i < c.cases.length; i++) {
       const cs = c.cases[i];
       const sx = cs.position[0] * this.view.scale + this.view.offsetX;
@@ -247,6 +302,26 @@ export class MapEditor {
       const sy = n.position[1] * this.view.scale + this.view.offsetY;
       if (Math.hypot(cx - sx, cy - sy) < 14) return { type: "npc", index: i };
     }
+    // Props: buscar el más chico que contenga el punto (así los chicos no quedan
+    // tapados por los grandes)
+    let bestIdx = -1;
+    let bestArea = Infinity;
+    for (let i = 0; i < c.props.length; i++) {
+      const fp = propFootprint(c.props[i]);
+      const sx = fp.x * this.view.scale + this.view.offsetX;
+      const sy = fp.z * this.view.scale + this.view.offsetY;
+      const hw = (fp.w * this.view.scale) / 2;
+      const hd = (fp.d * this.view.scale) / 2;
+      const tol = 4;
+      if (cx >= sx - hw - tol && cx <= sx + hw + tol && cy >= sy - hd - tol && cy <= sy + hd + tol) {
+        const area = Math.max(fp.w, 0.1) * Math.max(fp.d, 0.1);
+        if (area < bestArea) {
+          bestArea = area;
+          bestIdx = i;
+        }
+      }
+    }
+    if (bestIdx >= 0) return { type: "prop", index: bestIdx };
     return null;
   }
 
@@ -255,17 +330,22 @@ export class MapEditor {
       const c = this.state.content.cases[sel.index];
       return { x: c.position[0], z: c.position[2] };
     }
-    const n = this.state.content.npcs[sel.index];
-    return { x: n.position[0], z: n.position[1] };
+    if (sel.type === "npc") {
+      const n = this.state.content.npcs[sel.index];
+      return { x: n.position[0], z: n.position[1] };
+    }
+    return getPropPos(this.state.content.props[sel.index]);
   }
 
   private setEntityPos(sel: Exclude<Selection, null>, x: number, z: number) {
     if (sel.type === "case") {
       const c = this.state.content.cases[sel.index];
       c.position = [x, c.position[1], z];
-    } else {
+    } else if (sel.type === "npc") {
       const n = this.state.content.npcs[sel.index];
       n.position = [x, z];
+    } else {
+      setPropPos(this.state.content.props[sel.index], x, z);
     }
   }
 
@@ -293,13 +373,21 @@ export class MapEditor {
       clone.position = [orig.position[0] + 1, orig.position[1] + 1];
       this.state.content.npcs.push(clone);
       this.selection = { type: "npc", index: this.state.content.npcs.length - 1 };
-    } else {
+    } else if (this.selection.type === "case") {
       const orig = this.state.content.cases[this.selection.index];
       const clone: CaseFile = JSON.parse(JSON.stringify(orig));
       clone.id = Math.max(...this.state.content.cases.map((c) => c.id)) + 1;
       clone.position = [orig.position[0] + 0.5, orig.position[1], orig.position[2] + 0.5];
       this.state.content.cases.push(clone);
       this.selection = { type: "case", index: this.state.content.cases.length - 1 };
+    } else {
+      const orig = this.state.content.props[this.selection.index];
+      const clone: Prop = JSON.parse(JSON.stringify(orig));
+      clone.id = `${orig.id}-copy`;
+      const pos = getPropPos(clone);
+      setPropPos(clone, pos.x + 0.5, pos.z + 0.5);
+      this.state.content.props.push(clone);
+      this.selection = { type: "prop", index: this.state.content.props.length - 1 };
     }
     this.state.commit();
     this.renderInspector();
@@ -310,8 +398,10 @@ export class MapEditor {
     if (!this.selection) return;
     if (this.selection.type === "npc") {
       this.state.content.npcs.splice(this.selection.index, 1);
-    } else {
+    } else if (this.selection.type === "case") {
       this.state.content.cases.splice(this.selection.index, 1);
+    } else {
+      this.state.content.props.splice(this.selection.index, 1);
     }
     this.selection = null;
     this.state.commit();
@@ -381,6 +471,23 @@ export class MapEditor {
       ctx.lineTo(wl.x2 * this.view.scale + this.view.offsetX, wl.z2 * this.view.scale + this.view.offsetY);
     }
     ctx.stroke();
+
+    // Props (rectángulos con color del prop)
+    for (let i = 0; i < this.state.content.props.length; i++) {
+      const p = this.state.content.props[i];
+      const fp = propFootprint(p);
+      const sx = fp.x * this.view.scale + this.view.offsetX;
+      const sy = fp.z * this.view.scale + this.view.offsetY;
+      const sw = fp.w * this.view.scale;
+      const sd = fp.d * this.view.scale;
+      const isSel = this.selection?.type === "prop" && this.selection.index === i;
+      const isHover = this.hoverSel?.type === "prop" && this.hoverSel.index === i;
+      ctx.fillStyle = propColor(p) + "cc";
+      ctx.fillRect(sx - sw / 2, sy - sd / 2, sw, sd);
+      ctx.strokeStyle = isSel ? "#e7c66a" : isHover ? "#fff" : "rgba(0,0,0,0.5)";
+      ctx.lineWidth = isSel ? 2 : 0.8;
+      ctx.strokeRect(sx - sw / 2, sy - sd / 2, sw, sd);
+    }
 
     // Spawn
     const sp = this.state.content.layout.spawn;
@@ -481,7 +588,7 @@ export class MapEditor {
         else if (field === "py") c.position[1] = parseFloat(value as string) || 0;
         else if (field === "pz") c.position[2] = parseFloat(value as string) || 0;
       });
-    } else {
+    } else if (this.selection.type === "npc") {
       const n = this.state.content.npcs[this.selection.index];
       const skinOpts = NPC_SKINS.map(
         (s) => `<option value="${s}"${s === n.skin ? " selected" : ""}>${s}</option>`
@@ -504,6 +611,54 @@ export class MapEditor {
         else if (field === "px") n.position[0] = parseFloat(value as string) || 0;
         else if (field === "pz") n.position[1] = parseFloat(value as string) || 0;
         else if (field === "radius") n.radius = Math.max(0.5, parseFloat(value as string) || 0);
+      });
+    } else {
+      const p = this.state.content.props[this.selection.index];
+      const pos = getPropPos(p);
+      const sizeFields = (() => {
+        if (p.type === "box" || p.type === "decor") {
+          return `
+            <div class="row">
+              <label>W<input data-field="w" type="number" step="0.1" value="${p.w}" /></label>
+              <label>H<input data-field="h" type="number" step="0.1" value="${p.h}" /></label>
+              <label>D<input data-field="d" type="number" step="0.1" value="${p.d}" /></label>
+            </div>
+            <label>Color<input data-field="color" value="${escapeAttr(p.color)}" /></label>
+          `;
+        }
+        if (p.type === "sign") {
+          return `
+            <label>Título<input data-field="title" value="${escapeAttr(p.title)}" /></label>
+            <label>Subtítulo<input data-field="sub" value="${escapeAttr(p.sub ?? "")}" /></label>
+          `;
+        }
+        return "";
+      })();
+      const yField = (p.type === "decor" || p.type === "sign" || p.type === "portrait")
+        ? `<label>Y<input data-field="py" type="number" step="0.1" value="${(p as any).y}" /></label>`
+        : "";
+      this.inspector.innerHTML = `
+        <h3>${escapeHtml(p.type)} <span class="case-room">${escapeHtml(p.id)}</span></h3>
+        <label>ID<input data-field="id" value="${escapeAttr(p.id)}" /></label>
+        <div class="row">
+          <label>X<input data-field="px" type="number" step="0.1" value="${pos.x}" /></label>
+          ${yField}
+          <label>Z<input data-field="pz" type="number" step="0.1" value="${pos.z}" /></label>
+        </div>
+        ${sizeFields}
+      `;
+      this.bindInspector((field, value) => {
+        const anyP = p as any;
+        if (field === "id") anyP.id = value as string;
+        else if (field === "px") setPropPos(p, parseFloat(value) || 0, getPropPos(p).z);
+        else if (field === "pz") setPropPos(p, getPropPos(p).x, parseFloat(value) || 0);
+        else if (field === "py") anyP.y = parseFloat(value) || 0;
+        else if (field === "w") anyP.w = parseFloat(value) || 0.1;
+        else if (field === "h") anyP.h = parseFloat(value) || 0.1;
+        else if (field === "d") anyP.d = parseFloat(value) || 0.1;
+        else if (field === "color") anyP.color = value;
+        else if (field === "title") anyP.title = value;
+        else if (field === "sub") anyP.sub = value;
       });
     }
   }

@@ -166,6 +166,46 @@ export class Preview3D {
       this.dynamicGroup.add(ring);
     }
 
+    // Props
+    for (const p of c.props) {
+      let mesh: THREE.Mesh | null = null;
+      if (p.type === "box") {
+        mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(p.w, p.h, p.d),
+          mat(parseInt(p.color.slice(1), 16))
+        );
+        mesh.position.set(p.cx, p.h / 2, p.cz);
+      } else if (p.type === "decor") {
+        mesh = new THREE.Mesh(
+          new THREE.BoxGeometry(p.w, p.h, p.d),
+          mat(parseInt(p.color.slice(1), 16))
+        );
+        mesh.position.set(p.x, p.y, p.z);
+      } else if (p.type === "chair") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.9, 0.7), mat(0x1a1a16));
+        mesh.position.set(p.x, 0.45, p.z);
+      } else if (p.type === "table") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(1.5, 0.1, 1.5), mat(0xd0c090));
+        mesh.position.set(p.x, 0.9, p.z);
+      } else if (p.type === "portrait") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.1, 0.1), mat(0x3a1a1f));
+        mesh.position.set(p.x, p.y, p.z);
+      } else if (p.type === "plant") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(0.6, 1.4, 0.6), mat(0x2a5c3a));
+        mesh.position.set(p.x, 0.7, p.z);
+      } else if (p.type === "sign") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.8, 0.1), mat(0xa88b4a));
+        mesh.position.set(p.x, p.y, p.z);
+      } else if (p.type === "statue") {
+        mesh = new THREE.Mesh(new THREE.BoxGeometry(0.8, 2.2, 0.8), mat(0xa8a294));
+        mesh.position.set(p.x, 1.1, p.z);
+      } else if (p.type === "fountain") {
+        mesh = new THREE.Mesh(new THREE.CylinderGeometry(1.6, 1.6, 0.5, 12), mat(0x6a5f50));
+        mesh.position.set(p.x, 0.25, p.z);
+      }
+      if (mesh) this.dynamicGroup.add(mesh);
+    }
+
     // Cases (carpetas doradas — mini)
     for (const cs of c.cases) {
       const geo = new THREE.BoxGeometry(0.3, 0.22, 0.07);

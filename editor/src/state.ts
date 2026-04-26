@@ -71,12 +71,24 @@ export type Layout = {
   zones: Zone[];
 };
 
+export type Prop =
+  | { id: string; type: "box"; cx: number; cz: number; w: number; d: number; h: number; color: string; collider?: boolean }
+  | { id: string; type: "decor"; x: number; y: number; z: number; w: number; h: number; d: number; color: string }
+  | { id: string; type: "chair"; x: number; z: number }
+  | { id: string; type: "table"; x: number; z: number }
+  | { id: string; type: "portrait"; x: number; y: number; z: number }
+  | { id: string; type: "plant"; x: number; z: number }
+  | { id: string; type: "sign"; x: number; y: number; z: number; title: string; sub?: string }
+  | { id: string; type: "statue"; x: number; z: number }
+  | { id: string; type: "fountain"; x: number; z: number };
+
 export type EditorContent = {
   cases: CaseFile[];
   npcs: NPCSpawn[];
   players: PlayerVariant[];
   texts: Texts;
   layout: Layout;
+  props: Prop[];
 };
 
 const MAX_HISTORY = 50;
@@ -91,16 +103,29 @@ export class EditorState {
   private listeners: Set<Listener> = new Set();
 
   async load(): Promise<void> {
-    const [cases, npcs, players, texts, layout] = await Promise.all([
+    const [cases, npcs, players, texts, layout, props] = await Promise.all([
       readJSON<CaseFile[]>("cases.json"),
       readJSON<NPCSpawn[]>("npcs.json"),
       readJSON<PlayerVariant[]>("players.json"),
       readJSON<Texts>("texts.json"),
       readJSON<Layout>("layout.json"),
+      readJSON<Prop[]>("props.json"),
     ]);
-    this.content = { cases, npcs, players, texts, layout };
+    this.content = { cases, npcs, players, texts, layout, props };
     this.history = [JSON.stringify(this.content)];
     this.historyIdx = 0;
+    this.dirty = false;
+    this.notify();
+  }
+
+  async save(): Promise<void> {
+    await Promise.all([
+      writeJSON("cases.json", this.content.cases),
+      writeJSON("npcs.json", this.content.npcs),
+      writeJSON("players.json", this.content.players),
+      writeJSON("texts.json", this.content.texts),
+      writeJSON("props.json", this.content.props),
+    ]);
     this.dirty = false;
     this.notify();
   }
@@ -142,17 +167,6 @@ export class EditorState {
   }
   isDirty(): boolean {
     return this.dirty;
-  }
-
-  async save(): Promise<void> {
-    await Promise.all([
-      writeJSON("cases.json", this.content.cases),
-      writeJSON("npcs.json", this.content.npcs),
-      writeJSON("players.json", this.content.players),
-      writeJSON("texts.json", this.content.texts),
-    ]);
-    this.dirty = false;
-    this.notify();
   }
 
   subscribe(fn: Listener): () => void {
